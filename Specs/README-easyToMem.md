@@ -45,13 +45,13 @@ Cột **Bắt buộc** = phải điền ở bước đăng ký (form), "Sau" = b
 
 ```
 is_univer: bool
-├── true  → major: enum  → grade: enum (1–4)
-└── false → subject: enum → grade: enum (1–12)
+├── true  → list major: enum + grade: enum (1–4)
+└── false → list subject: enum + grade: enum (1–12)
 ```
 
 Ví dụ:
 - `yes, cs(1), 1` → sinh viên ngành CS, năm 1
-- `no, 4` → học sinh lớp 4
+- `no, {math(1),english(2)} ,4` → học viên lớp 4 cần học môn toán và tiếng anh
 
 > **Ý nghĩa với Tutor:** là ngành/môn mà gia sư có thể dạy (dùng để ghép với tutee cùng major/subject). Đây là giả định cần xác nhận, xem mục 8.
 
