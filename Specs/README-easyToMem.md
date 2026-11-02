@@ -41,7 +41,7 @@ Cột **Bắt buộc** = phải điền ở bước đăng ký (form), "Sau" = b
 | 7 | `contact_info` | text | Sau | Gợi ý nhập: số điện thoại, địa chỉ, gmail |
 
 
-### 2.3 Thông tin học vấn (field 11) — dùng cho cả Tutor và Tutee
+### 2.3 Thông tin học vấn — dùng cho Tutee only
 
 ```
 is_univer: bool
@@ -50,7 +50,7 @@ is_univer: bool
 ```
 
 Ví dụ:
-- `yes, cs(1), 1` → sinh viên ngành CS, năm 1
+- `yes, { cs(1) }, 1` → học viên là sinh viên ngành CS, năm 1
 - `no, {math(1),english(2)} ,4` → học viên lớp 4 cần học môn toán và tiếng anh
 
 ### 2.4 Chỉ riêng Tutor
