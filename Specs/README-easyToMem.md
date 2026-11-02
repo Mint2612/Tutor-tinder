@@ -53,8 +53,6 @@ Ví dụ:
 - `yes, cs(1), 1` → sinh viên ngành CS, năm 1
 - `no, {math(1),english(2)} ,4` → học viên lớp 4 cần học môn toán và tiếng anh
 
-> **Ý nghĩa với Tutor:** là ngành/môn mà gia sư có thể dạy (dùng để ghép với tutee cùng major/subject). Đây là giả định cần xác nhận, xem mục 8.
-
 ### 2.4 Chỉ riêng Tutor
 
 | # | Trường | Kiểu | Ghi chú |
