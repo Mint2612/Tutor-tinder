@@ -1,2 +1,15 @@
-thai.md**/.venv
-.venv/
+thai.md
+**/.venv/
+**/node_modules/
+**/target/
+**/dist/
+**/coverage/
+.env*
+!.env.example
+!**/.env.example
+.DS_Store
+*.log
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json

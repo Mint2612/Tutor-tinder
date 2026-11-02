@@ -1,0 +1,21 @@
+* { box-sizing: border-box; }
+:root { font-family: Arial, Helvetica, sans-serif; color: #163d32; background: #f6f8f5; font-synthesis: none; text-rendering: optimizeLegibility; }
+body { margin: 0; }
+::selection { background: #c9ebd5; }
+.container { max-width: 1152px; margin: auto; padding: 32px 48px; }
+header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #163d321a; padding-bottom: 24px; gap: 12px; }
+.brand { font-size: 22px; font-weight: 700; letter-spacing: -0.7px; }
+.brand span, h1 span { color: #059669; }
+.badge { background: white; padding: 9px 16px; border-radius: 999px; font-size: 12px; }
+.hero { max-width: 800px; padding: 100px 0; }
+.eyebrow { text-transform: uppercase; letter-spacing: 0.18em; font-size: 13px; font-weight: 700; color: #047857; margin: 0 0 24px; }
+h1 { font-size: clamp(36px, 5vw, 60px); letter-spacing: -0.04em; line-height: 1.15; margin: 0; font-weight: 600; }
+.intro { max-width: 570px; font-size: 18px; line-height: 1.8; color: #475569; margin: 28px 0; }
+.notice { max-width: 570px; padding: 20px; background: white; border: 1px solid #163d321a; border-radius: 16px; font-size: 14px; line-height: 1.8; color: #475569; }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+article { background: white; border: 1px solid #163d321a; border-radius: 16px; padding: 28px; }
+.number { color: #059669; font-size: 14px; font-weight: 700; }
+h2 { margin: 24px 0 12px; font-size: 20px; }
+article p { font-size: 14px; color: #475569; line-height: 1.9; margin-bottom: 0; }
+footer { margin-top: 64px; padding: 24px 0; border-top: 1px solid #163d321a; font-size: 12px; color: #64748b; }
+@media (max-width: 720px) { .container { padding: 24px; } .hero { padding: 70px 0; } .steps { grid-template-columns: 1fr; } }
