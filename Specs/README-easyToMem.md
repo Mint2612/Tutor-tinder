@@ -4,7 +4,7 @@
 
 ## 1. Tổng quan
 
-Nền tảng kết nối **gia sư (tutor)** và **học viên (tutee)** trong cùng một tỉnh/thành. Có 3 loại người dùng:
+Nền tảng kết nối **gia sư (tutor)** và **học viên (tutee)** trong cùng một tỉnh/thành hoặc online. Có 3 loại người dùng:
 
 | Vai trò | Mô tả | Quyền chính |
 |---|---|---|
@@ -13,8 +13,7 @@ Nền tảng kết nối **gia sư (tutor)** và **học viên (tutee)** trong c
 | **Tutee** | Học viên | Hoàn thiện hồ sơ, tìm tutor, dùng AI gợi ý |
 
 **Quy tắc cốt lõi:** Tutor và Tutee chỉ tìm thấy nhau khi **cùng tỉnh/thành** (mỗi tỉnh là một "room" riêng).
-Ví dụ: TP.HCM = Room 1, tutor và tutee ở TP.HCM chỉ thấy nhau trong Room 1.
-
+Ví dụ: TP.HCM = Room 1, tutor và tutee ở TP.HCM chỉ thấy nhau trong Room 1. Và có một room riêng, liên hệ online giữa các cá nhân. 
 ---
 
 ## 2. Mô hình dữ liệu (Database)
@@ -41,7 +40,7 @@ Cột **Bắt buộc** = phải điền ở bước đăng ký (form), "Sau" = b
 | 7 | `contact_info` | text | Sau | Gợi ý nhập: số điện thoại, địa chỉ, gmail |
 
 
-### 2.3 Thông tin học vấn — dùng cho Tutee only
+### 2.3 Thông tin học vấn — dùng cho Tutee only ( 11 ) 
 
 ```
 is_univer: bool
@@ -70,11 +69,13 @@ Ví dụ:
 | **Tutor public profile** | 1 → 10, **trừ 9** (không lộ giấy tờ tuổi) |
 | **Tutee public profile** | 1 → 6 + 11 |
 
-> Lưu ý: `contact_info` (7) nằm trong public profile theo yêu cầu gốc. Nên cân nhắc chỉ hiện sau khi hai bên đồng ý kết nối (xem mục 8).
+> Lưu ý: `contact_info` (7) đảm bảo rằng chỉ tutor bị public, tutee được bảo mật thông tin tối đa. Chỉ khi cả 2 đồng ý mate thì mới được. 
 
 ### 2.6 Sơ đồ bảng đề xuất
 
+
 ```
+pls tham khảo only ... AI gen not true
 users            (id, username, password_hash, role, created_at)
 profiles         (user_id FK, full_name, gender, age, province_id, town_id,
                   self_description, contact_info)
@@ -95,8 +96,7 @@ subjects         (id, name)
 - Mỗi `province` tương ứng một room tìm kiếm riêng.
 - Mọi truy vấn tìm kiếm **bắt buộc** lọc theo `province_id` của người đang đăng nhập.
 - Không cho phép tutor/tutee truy cập hồ sơ ngoài tỉnh của mình (kiểm tra ở backend, không chỉ ở UI).
-- Đề xuất index: `(province_id, role, is_univer, major_id/subject_id)`.
-
+- TRỪ ROOM ONLINE, DÀNH CHO NGƯỜI HỌC ONLINE.
 ---
 
 ## 4. Luồng người dùng — Tutee (học viên)
