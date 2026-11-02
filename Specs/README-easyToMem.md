@@ -40,18 +40,6 @@ Cột **Bắt buộc** = phải điền ở bước đăng ký (form), "Sau" = b
 | 6 | `self_description` | text | Sau | Giới thiệu bản thân, dùng cho AI gợi ý |
 | 7 | `contact_info` | text | Sau | Gợi ý nhập: số điện thoại, địa chỉ, gmail |
 
-CREATE TABLE provinces (
-    id INT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL
-);
-
-CREATE TABLE towns (
-    id INT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    province_id INT NOT NULL, -- Bắt buộc có province_id (FOREIGN KEY)
-    FOREIGN KEY (province_id) REFERENCES provinces(id) ON DELETE CASCADE
-);
-
 
 ### 2.3 Thông tin học vấn (field 11) — dùng cho cả Tutor và Tutee
 
