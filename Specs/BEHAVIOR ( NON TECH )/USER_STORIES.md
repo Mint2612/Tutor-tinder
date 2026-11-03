@@ -12,7 +12,7 @@
 | [US-02](#us-02-tạo-hồ-sơ-học-sinh-và-làm-khảo-sát)           | Tạo hồ sơ học sinh và làm khảo sát           | Phụ huynh                | Must    | FR-02 |
 | [US-03](#us-03-gia-sư-tạo-hồ-sơ-và-khai-báo-phương-pháp-dạy) | Gia sư tạo hồ sơ và khai báo phương pháp dạy | Gia sư                   | Must    | FR-03 |
 | [US-04](#us-04-xác-minh-hồ-sơ-gia-sư)                        | Xác minh hồ sơ gia sư                        | Admin                    | Must    | FR-04 |
-| [US-05](#us-05-gợi-ý-gia-sư-dạng-thẻ-kèm-mức-phù-hợp-lấy-cảm-hứng-cách-matching-tinder)                 | Gợi ý gia sư kèm mức phù hợp (lấy cảm hứng từ cách ma tinder)                 | Phụ huynh                | Must    | FR-05 |
+| [US-05](#us-05-gợi-ý-gia-sư-dạng-thẻ-kèm-mức-phù-hợp-lấy-cảm-hứng-cách-matching-tinder)                 | Gợi ý gia sư kèm mức phù hợp (lấy cảm hứng từ cách match tinder)                 | Phụ huynh                | Must    | FR-05 |
 | [US-06](#us-06-xem-hồ-sơ-chi-tiết-gia-sư)                    | Xem hồ sơ chi tiết gia sư                    | Phụ huynh                | Must    | FR-06 |
 | [US-07](#us-07-đặt-lịch-học-thử-sau-khi-match)                          | Gửi yêu cầu học thử                          | Phụ huynh, Gia sư        | Must    | FR-07 |
 
