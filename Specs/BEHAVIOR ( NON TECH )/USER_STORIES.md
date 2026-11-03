@@ -12,9 +12,9 @@
 | [US-02](#us-02-tạo-hồ-sơ-học-sinh-và-làm-khảo-sát)           | Tạo hồ sơ học sinh và làm khảo sát           | Phụ huynh                | Must    | FR-02 |
 | [US-03](#us-03-gia-sư-tạo-hồ-sơ-và-khai-báo-phương-pháp-dạy) | Gia sư tạo hồ sơ và khai báo phương pháp dạy | Gia sư                   | Must    | FR-03 |
 | [US-04](#us-04-xác-minh-hồ-sơ-gia-sư)                        | Xác minh hồ sơ gia sư                        | Admin                    | Must    | FR-04 |
-| [US-05](#us-05-gợi-ý-gia-sư-kèm-mức-phù-hợp)                 | Gợi ý gia sư kèm mức phù hợp (lấy cảm hứng từ tinder                 | Phụ huynh                | Must    | FR-05 |
+| [US-05](#us-05-gợi-ý-gia-sư-dạng-thẻ-kèm-mức-phù-hợp-lấy-cảm-hứng-cách-matching-tinder)                 | Gợi ý gia sư kèm mức phù hợp (lấy cảm hứng từ cách ma tinder)                 | Phụ huynh                | Must    | FR-05 |
 | [US-06](#us-06-xem-hồ-sơ-chi-tiết-gia-sư)                    | Xem hồ sơ chi tiết gia sư                    | Phụ huynh                | Must    | FR-06 |
-| [US-07](#us-07-gửi-yêu-cầu-học-thử)                          | Gửi yêu cầu học thử                          | Phụ huynh, Gia sư        | Must    | FR-07 |
+| [US-07](#us-07-đặt-lịch-học-thử-sau-khi-match)                          | Gửi yêu cầu học thử                          | Phụ huynh, Gia sư        | Must    | FR-07 |
 
 ---
 
@@ -308,77 +308,90 @@ Then gia sư nhận được lý do và có thể nộp lại
 
 ---
 
-## US-05: Gợi ý gia sư kèm mức phù hợp
+## US-05: Gợi ý gia sư dạng thẻ kèm mức phù hợp (lấy cảm hứng cách matching Tinder)
 
-| Vai trò   | Ưu tiên | FR / UC liên quan |
-| --------- | ------- | ----------------- |
-| Phụ huynh | Must    | FR-05 / UC-05     |
+| Vai trò | Ưu tiên | FR / UC liên quan |
+|---|---|---|
+| Phụ huynh, Gia sư | Must | FR-05 / UC-05 |
 
 ### Feature
-
-Matching bằng AI
+Matching bằng AI, chọn gia sư dạng thẻ
 
 ### User Story
-
 Là một phụ huynh,
-tôi muốn nhận danh sách gia sư được gợi ý kèm mức phù hợp và lý do,
+tôi muốn xem từng gia sư được gợi ý dưới dạng thẻ kèm mức phù hợp và lý do, rồi chọn "Quan tâm" hoặc "Bỏ qua",
 để tôi chọn được gia sư hợp với con mà không phải tự so sánh từng hồ sơ.
 
 ### Context
-
 Hồ sơ học sinh đã hoàn thành khảo sát (US-02) và đã có gia sư được duyệt (US-04). Hệ thống lọc bằng luật rồi dùng model AI có sẵn để xếp hạng và giải thích (README mục 5.3).
+Cách ghép lấy cảm hứng từ Tinder: hiển thị từng thẻ, chọn nhanh, và chỉ "Match" khi cả hai bên đồng ý. Khác Tinder ở chỗ thẻ gia sư phải có lý do phù hợp và huy hiệu xác minh, không dựa vào ảnh hay ngoại hình, vì đây là quyết định liên quan đến trẻ em.
 
 ### Functional Requirements
-
 - Hệ thống phải lọc gia sư theo môn, cấp lớp, hình thức dạy, khu vực, lịch, học phí.
 - Hệ thống phải gửi hồ sơ ẩn danh của học sinh và tối đa 20 gia sư cho AI để xếp hạng.
-- Hệ thống phải hiển thị tối đa 5 gia sư kèm nhãn mức phù hợp, điểm mạnh, điểm cần lưu ý.
+- Hệ thống phải hiển thị gia sư dưới dạng thẻ, mỗi lần một thẻ, theo mức phù hợp giảm dần, mỗi đợt tối đa 5 thẻ.
+- Thẻ phải có: môn dạy, huy hiệu xác minh, nhãn mức phù hợp, điểm mạnh, điểm cần lưu ý, và nút "Xem chi tiết" (US-06).
+- Hệ thống phải cho phụ huynh chọn "Quan tâm" hoặc "Bỏ qua" cho từng thẻ (bằng nút hoặc vuốt).
+- Khi phụ huynh chọn "Quan tâm", hệ thống phải gửi thông báo cho gia sư kèm hồ sơ học sinh ẩn danh, mức phù hợp và lý do.
+- Hệ thống phải cho gia sư chấp nhận hoặc từ chối. Khi gia sư chấp nhận, hai bên thành **Match** và chuyển sang đặt học thử (US-07).
+- Hệ thống phải lưu danh sách gia sư đã "Quan tâm" để phụ huynh xem lại, và không hiển thị lại gia sư đã "Bỏ qua" cho cùng hồ sơ học sinh.
 - Hệ thống phải tự chuyển sang chấm điểm theo luật khi AI lỗi hoặc quá 10 giây.
 
 ### Business Rules
-
 - Chỉ gia sư đã xác minh tối thiểu cấp 2 mới được đưa vào danh sách.
 - Gia sư không đáp ứng điều kiện bắt buộc (môn, cấp lớp) không xuất hiện dù điểm AI cao.
+- Chỉ Match khi cả hai bên đồng ý; chưa Match thì gia sư chỉ thấy hồ sơ học sinh ẩn danh (không tên, trường, địa chỉ), và hai bên không thấy thông tin liên hệ của nhau.
+- Thứ tự hiển thị không chỉ theo mức phù hợp: gia sư mới (chưa có đánh giá) phải có cơ hội xuất hiện (cách chia cụ thể do team chốt).
+- Ảnh đại diện và ngoại hình không được dùng làm tiêu chí xếp hạng.
 - Mức phù hợp mang tính tương đối, không phải cam kết kết quả học tập.
 
 ### Scenarios
+#### Scenario 1: Match thành công
+Given phụ huynh đang xem thẻ của một gia sư
+When phụ huynh chọn "Quan tâm" và gia sư chấp nhận
+Then hai bên thành Match, thấy thông tin liên hệ của nhau và được chuyển sang đặt học thử
 
-#### Scenario 1: Gợi ý thành công
+#### Scenario 2: Bỏ qua gia sư
+Given phụ huynh đang xem thẻ của một gia sư
+When phụ huynh chọn "Bỏ qua"
+Then hệ thống chuyển sang thẻ tiếp theo và không hiển thị lại gia sư này cho hồ sơ học sinh đó
 
-Given hồ sơ học sinh hoàn chỉnh và có ít nhất 3 gia sư thỏa điều kiện lọc
-When phụ huynh mở trang gợi ý
-Then hệ thống hiển thị 3-5 gia sư theo mức phù hợp giảm dần, mỗi gia sư có nhãn mức phù hợp và lý do
+#### Scenario 3: Gia sư từ chối
+Given phụ huynh đã chọn "Quan tâm" một gia sư
+When gia sư từ chối
+Then phụ huynh được thông báo và gia sư không còn nằm trong danh sách quan tâm
 
-#### Scenario 2: AI lỗi
-
+#### Scenario 4: AI lỗi
 Given hồ sơ học sinh hợp lệ
 When dịch vụ AI không phản hồi trong 10 giây hoặc trả lỗi
-Then hệ thống hiển thị gợi ý bằng chấm điểm theo luật, không hiện lỗi kỹ thuật cho phụ huynh
+Then hệ thống hiển thị thẻ theo chấm điểm theo luật, không hiện lỗi kỹ thuật cho phụ huynh
 
-#### Scenario 3: Không có gia sư phù hợp
-
-Given không gia sư nào đã duyệt thỏa điều kiện lọc
-When phụ huynh mở trang gợi ý
-Then hệ thống thông báo không có kết quả và gợi ý nới điều kiện (khu vực, học phí)
+#### Scenario 5: Hết thẻ hoặc không có gia sư phù hợp
+Given đã xem hết thẻ trong đợt hoặc không gia sư nào thỏa điều kiện lọc
+When phụ huynh tiếp tục
+Then hệ thống cho xem thêm đợt mới nếu còn, hoặc thông báo không có kết quả và gợi ý nới điều kiện (khu vực, học phí)
 
 ### Constraints
-
 - Chỉ gửi dữ liệu ẩn danh cho nhà cung cấp AI (NFR-07).
 - Danh sách lọc hiển thị trong 3 giây, kết quả AI trong tối đa 10 giây (NFR-01).
+- Hồ sơ học sinh chỉ lộ thông tin định danh sau khi Match (NFR-02).
 
 ### Non-Goals
-
 - Huấn luyện model riêng.
 - Cho phụ huynh chỉnh trọng số matching.
+- Vuốt không giới hạn; chấm điểm hay xếp hạng theo ảnh.
+- Chat trước khi Match.
 
 ### Dependencies
-
 - US-02, US-03, US-04; dịch vụ AI bên thứ ba (dev chọn ở STRUCTURAL/).
+- Chuyển tiếp sang US-06 (xem chi tiết) và US-07 (đặt học thử sau Match).
 
 ### Acceptance Criteria
-
-- [ ] Mỗi gợi ý có nhãn mức phù hợp, ít nhất 1 điểm mạnh và 1 điểm cần lưu ý.
-- [ ] Khi AI lỗi, phụ huynh vẫn nhận được gợi ý dự phòng (NFR-08).
+- [ ] Mỗi thẻ có nhãn mức phù hợp, ít nhất 1 điểm mạnh và 1 điểm cần lưu ý.
+- [ ] Chỉ Match khi cả phụ huynh và gia sư đồng ý.
+- [ ] Trước Match, gia sư không thấy thông tin định danh của học sinh.
+- [ ] Gia sư đã "Bỏ qua" không hiện lại cho cùng hồ sơ học sinh.
+- [ ] Khi AI lỗi, phụ huynh vẫn nhận được thẻ dự phòng (NFR-08).
 - [ ] Yêu cầu gửi AI không chứa dữ liệu định danh (NFR-07).
 - [ ] Không gia sư chưa xác minh nào xuất hiện trong kết quả.
 
@@ -451,75 +464,76 @@ Then hệ thống thông báo hồ sơ không còn khả dụng
 
 ---
 
-## US-07: Gửi yêu cầu học thử
+## US-07: Đặt lịch học thử sau khi Match
 
-| Vai trò           | Ưu tiên | FR / UC liên quan |
-| ----------------- | ------- | ----------------- |
-| Phụ huynh, Gia sư | Must    | FR-07 / UC-07     |
+| Vai trò | Ưu tiên | FR / UC liên quan |
+|---|---|---|
+| Phụ huynh, Gia sư | Must | FR-07 / UC-07 |
 
 ### Feature
-
-Yêu cầu học thử
+Đặt lịch buổi học thử
 
 ### User Story
-
 Là một phụ huynh,
-tôi muốn gửi yêu cầu học thử cho gia sư tôi chọn và biết gia sư chấp nhận hay từ chối,
+tôi muốn thống nhất lịch buổi học thử với gia sư đã Match,
 để con có buổi học đầu tiên trước khi quyết định học lâu dài.
 
 ### Context
-
-Đây là bước chuyển đổi chính của MVP và là cơ sở đo KPI-01, KPI-02. Sau khi gia sư chấp nhận, hai bên liên hệ với nhau ngoài nền tảng vì MVP chưa có chat.
+Hai bên đã Match ở US-05 (phụ huynh chọn "Quan tâm", gia sư chấp nhận) và đã thấy thông tin liên hệ của nhau. Đây là bước chuyển đổi cuối của MVP và là cơ sở đo KPI học thử. MVP chưa có chat và thanh toán, nên buổi học diễn ra ngoài nền tảng, hệ thống chỉ chốt lịch và ghi nhận kết quả.
 
 ### Functional Requirements
-
-- Hệ thống phải cho phụ huynh gửi yêu cầu học thử kèm hồ sơ học sinh, khung giờ đề xuất và lời nhắn.
-- Hệ thống phải thông báo cho gia sư và cho gia sư chấp nhận hoặc từ chối (từ chối có thể kèm lý do).
-- Hệ thống phải thông báo kết quả cho phụ huynh.
-- Hệ thống phải hiển thị thông tin liên hệ cho hai bên sau khi gia sư chấp nhận.
-- Hệ thống phải tự đóng yêu cầu nếu gia sư không phản hồi sau thời hạn quy định.
+- Hệ thống phải cho phụ huynh đề xuất từ 1 đến 3 khung giờ học thử và hình thức học (trực tuyến hoặc tại nhà) cho một Match.
+- Hệ thống phải thông báo cho gia sư và cho gia sư xác nhận một khung giờ, hoặc đề xuất khung giờ khác.
+- Hệ thống phải cho phụ huynh xác nhận hoặc từ chối khung giờ gia sư đề xuất lại.
+- Hệ thống phải thông báo cho cả hai bên khi lịch được chốt, đổi hoặc hủy.
+- Hệ thống phải hiển thị trạng thái lịch học thử: chờ xác nhận, đã chốt, đã hủy, hết hạn.
+- Hệ thống phải cho hai bên hủy hoặc đổi lịch trước giờ học, kèm lý do.
+- Hệ thống phải tự đóng lịch nếu một bên không phản hồi sau thời hạn quy định.
+- Sau buổi học, hệ thống phải mở lời mời đánh giá ngắn cho phụ huynh (FR-09).
 
 ### Business Rules
-
-- Mỗi hồ sơ học sinh chỉ có một yêu cầu đang chờ với cùng một gia sư.
-- Thời hạn phản hồi của gia sư do team chốt (ví dụ vài ngày).
-- Thông tin liên hệ chỉ chia sẻ sau khi gia sư chấp nhận.
+- Chỉ đặt được lịch học thử với gia sư đã Match (US-05).
+- Mỗi Match chỉ có một lịch học thử đang hoạt động tại một thời điểm.
+- Thời hạn phản hồi và thời hạn được hủy trước giờ học do team chốt (ví dụ vài ngày, tối thiểu vài giờ).
+- Lịch học thử bị hủy hoặc hết hạn thì Match vẫn còn, hai bên có thể đặt lại.
 
 ### Scenarios
+#### Scenario 1: Chốt lịch thành công
+Given phụ huynh và gia sư đã Match
+When phụ huynh đề xuất 2 khung giờ và gia sư xác nhận một trong hai
+Then lịch học thử được chốt và cả hai bên nhận thông báo
 
-#### Scenario 1: Gia sư chấp nhận
+#### Scenario 2: Gia sư đề xuất giờ khác
+Given phụ huynh đã đề xuất khung giờ
+When gia sư đề xuất khung giờ khác và phụ huynh đồng ý
+Then lịch được chốt theo khung giờ mới
 
-Given phụ huynh đã gửi yêu cầu học thử
-When gia sư chấp nhận
-Then phụ huynh được thông báo và hai bên thấy thông tin liên hệ
+#### Scenario 3: Không ai phản hồi
+Given lịch đang ở trạng thái chờ xác nhận
+When quá thời hạn phản hồi mà một bên chưa trả lời
+Then lịch tự chuyển sang hết hạn và hai bên được thông báo, có thể đặt lại
 
-#### Scenario 2: Gia sư từ chối
-
-Given phụ huynh đã gửi yêu cầu học thử
-When gia sư từ chối
-Then phụ huynh được thông báo và có thể chọn gia sư khác trong danh sách gợi ý
-
-#### Scenario 3: Gửi trùng yêu cầu
-
-Given đang có yêu cầu chờ phản hồi giữa hồ sơ học sinh này và gia sư này
-When phụ huynh gửi thêm yêu cầu
-Then hệ thống từ chối và hiển thị yêu cầu hiện có
+#### Scenario 4: Hủy lịch
+Given lịch học thử đã được chốt
+When một bên hủy trước giờ học và nhập lý do
+Then lịch chuyển sang đã hủy và bên còn lại được thông báo
 
 ### Constraints
-
 - Thông báo qua email hoặc trong ứng dụng; không dùng thông báo đẩy.
+- Giao diện tiếng Việt, hiển thị tốt trên di động (NFR-03).
 
 ### Non-Goals
-
-- Thanh toán, hợp đồng, chat realtime, video call.
+- Thanh toán, hợp đồng, chat realtime, video call tích hợp.
+- Đồng bộ lịch với Google Calendar.
+- Đặt nhiều buổi học dài hạn (chỉ buổi học thử).
 
 ### Dependencies
-
-- US-01, US-05, US-06.
+- US-01, US-05 (Match là điều kiện bắt buộc), US-06.
+- FR-09 (đánh giá sau học thử) nhận đầu vào từ lịch đã hoàn thành.
 
 ### Acceptance Criteria
-
-- [ ] Gửi được yêu cầu, gia sư nhận thông báo và phản hồi được.
-- [ ] Phụ huynh thấy trạng thái yêu cầu (chờ, đã chấp nhận, bị từ chối, hết hạn).
-- [ ] Thông tin liên hệ chỉ hiện sau khi gia sư chấp nhận.
-- [ ] Không gửi trùng yêu cầu đang chờ.
+- [ ] Không đặt được lịch với gia sư chưa Match.
+- [ ] Mỗi Match chỉ có một lịch học thử đang hoạt động.
+- [ ] Cả hai bên đều thấy trạng thái lịch và nhận thông báo khi trạng thái thay đổi.
+- [ ] Lịch quá hạn phản hồi tự chuyển sang hết hạn.
+- [ ] Hủy lịch bắt buộc có lý do.
