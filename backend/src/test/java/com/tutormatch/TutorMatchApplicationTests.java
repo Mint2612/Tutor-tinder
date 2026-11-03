@@ -24,6 +24,6 @@ class TutorMatchApplicationTests {
         seeder.run(new DefaultApplicationArguments());
         assertEquals(before, jdbc.queryForObject("SELECT COUNT(*) FROM tutor_profiles", Long.class));
         assertEquals(20L, jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE email LIKE 'tutor%@example.test'", Long.class));
-        assertEquals(0L, jdbc.queryForObject("SELECT COUNT(*) FROM tutor_profiles WHERE verification_status = 'APPROVED'", Long.class));
+        assertEquals(0L, jdbc.queryForObject("SELECT COUNT(*) FROM tutor_profiles t JOIN users u ON u.id=t.user_id WHERE t.verification_status = 'APPROVED' AND u.email LIKE 'tutor%@example.test'", Long.class));
     }
 }

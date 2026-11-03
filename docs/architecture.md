@@ -1,34 +1,19 @@
-# Kiến trúc
+# Architecture
 
-- `frontend/`: React JavaScript + Vite, CSS thuần, Oxlint theo template chính thức.
-- `backend/`: Java 21 + Spring Boot 4.1.2, Maven Wrapper, Spring MVC, Spring Data JPA, Validation, Flyway, MariaDB JDBC và Actuator.
-- `compose.yaml`: MariaDB 11.4; profile `app` chạy thêm backend/frontend; profile `test` chạy kiểm thử backend với DB riêng.
+The current implementation follows the November 2026 specification: React JavaScript → Spring Boot REST API → Spring Security/business services → MariaDB; the optional external LLM sits behind the backend `LlmRanker` interface. Older embedding-first proposals in Specs are superseded. No embedding is required for eligibility.
 
-Frontend gọi `/api/...`; Vite proxy khi phát triển, nginx proxy khi chạy Docker. Không cần mở CORS toàn bộ. Chưa có router hoặc UI kit; thêm khi xây màn hình thực tế.
+Frontend uses relative `/api` paths (Vite proxy locally, nginx in Docker), reusable forms/cards/dialogs, Vietnamese labels, pointer gestures with equivalent buttons, native accessible dialogs, responsive CSS and reduced-motion support. No secrets, sample tutor cards or client-only business decisions stand in for backend state. React maintains the active view in memory; URLs/deep links are not implemented.
 
-Backend tổ chức theo tính năng (`user`, `health`, `matching`), cấu hình và seed ở `config`. Tính năng tiếp theo thêm controller → service → repository, dùng DTO cho đầu vào/đầu ra; không trả thẳng entity chứa dữ liệu riêng tư.
+Backend packages:
 
-Flyway là nguồn quản lý schema. Hibernate chỉ `validate`, không tự sửa bảng. Migration đã chạy thì không sửa lại; tạo `V2__...sql`, `V3__...sql` cho thay đổi mới. Các bảng hồ sơ/học thử/đánh giá đã có schema; hiện chỉ `User` có JPA entity/repository mẫu. Các entity và API còn lại phát triển theo tính năng.
+- `auth`: BCrypt, opaque hashed eight-hour sessions, CSRF double-submit cookie/header, independent email/phone challenges, reset/session revocation, database throttling, delivery gateway and deployment-only admin provisioning.
+- `platform`: validated DTOs, profile ownership, private evidence and current-submission audit, trial state transitions, deterministic filtering/scoring, provider output validation.
+- `health`, `user`, `matching`: existing health, JPA user scaffold and cosine utility retained. Business queries use parameterized Spring JDBC on the same transaction manager/database.
 
-Vector embedding lưu JSON cùng tên model; ứng dụng đọc thành `double[]` để tính cosine. Không cần vector DB riêng với quy mô MVP. Chưa tích hợp AI provider.
+Services own profile persistence; controllers expose JSON DTO inputs and deliberately selected public outputs. Tutor edits reset approval. Evidence endpoints require ADMIN, record which submission was reviewed and return attachment/no-store headers; documents never have public URLs. Actual identity verification remains a human responsibility, not a claim inferred from a file upload.
 
-## Phạm vi sản phẩm
+Only activated, approved and visible tutors can be publicly listed or recommended. Filters require all requested subjects, grade, format, shared weekly slot, budget, and same province for in-person learning. Unseen eligible profiles are ordered deterministically before the top 20 enter the ranking stage. The fallback uses shared schedule, experience and budget headroom. LLM sees candidate aliases and allowlisted learning/teaching categories, not raw student narratives or identity. Output is bounded and validated against candidate IDs, qualitative labels and explanation sizes. Up to eight concurrent AI calls; an eight-second provider timeout and nine-second orchestration limit preserve fallback availability. An unhealthy provider cannot override eligibility.
 
-Dùng bản v0.4 trong `Specs/README.md` và `Specs/Requirement.md` làm cơ sở tạm thời: PARENT, TUTOR, ADMIN; học sinh là hồ sơ của phụ huynh; không lưu giấy tờ. PO cần thống nhất khác biệt với `README-easyToMem.md` trước khi phát triển tính năng liên quan.
+Trial interest, request creation and acceptance are separate records/actions. MariaDB generated unique pending pairs protect concurrent duplicate submissions. Only the owning tutor can transition an unexpired PENDING request. Contact fields are selected with CASE only for ACCEPTED lessons; they are absent from discovery/public tutor data. Expiration is checked lazily on request operations. Parent/tutor status pages refresh through REST; no realtime messaging/notification delivery is implied.
 
-## Thứ tự chia việc
-
-1. FR-01: Spring Security, phương thức đăng nhập, lưu mật khẩu đã hash, session và phân quyền. ADMIN không do người dùng tự chọn.
-2. FR-02/03: entity/DTO/service/controller cho hồ sơ, consent, danh mục môn/lớp/khu vực và lịch.
-3. FR-04: admin duyệt, kiểm tra quyền tại backend; không upload giấy tờ.
-4. FR-05: SQL lọc điều kiện bắt buộc → cosine top 10 → fallback; chỉ tutor đã duyệt và có vector hợp lệ.
-5. FR-06/07: chi tiết gia sư và yêu cầu học thử; kiểm tra chủ sở hữu và chuyển trạng thái.
-6. FR-09: đánh giá sau học thử, giải thích top 3 bằng LLM.
-
-Chưa có Spring Security/auth nên chưa có API đọc dữ liệu người dùng; chỉ có health. Actuator chỉ công khai health. Không thêm API hồ sơ trước khi có kiểm tra quyền.
-
-## AI
-
-Ẩn danh dữ liệu trước cả embedding và LLM; chỉ gọi AI từ backend. Tạo lại vector khi hồ sơ đổi, tái sử dụng khi tìm kiếm. Không so vector khác model/kích thước. Tutor chưa có vector vẫn ẩn; cần tác vụ retry khi triển khai provider.
-
-NFR-01 muốn danh sách trong 3 giây, NFR-08 cho API chờ 10 giây: cần thống nhất timeout. Fallback vẫn phải giữ điều kiện bắt buộc. Phép tính cosine hiện chỉ là nền tảng, chưa kiểm chứng chất lượng ghép thực tế.
+Flyway owns migrations; Hibernate validates the retained User entity. V1 remains unchanged; V2 extends profiles and introduces auth, evidence, swipes and lesson requests. See migrations.md for legacy-table handling and deployment/backups. Admin audit and evidence remain private DB data.

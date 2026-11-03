@@ -24,7 +24,14 @@ services:
       DATABASE_NAME: ${DATABASE_NAME:-tutormatch}
       DATABASE_USER: ${DATABASE_USER:-tutormatch}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env}
-      SPRING_PROFILES_ACTIVE: demo
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      DELIVERY_URL: ${DELIVERY_URL:-}
+      DELIVERY_KEY: ${DELIVERY_KEY:-}
+      LLM_URL: ${LLM_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
     depends_on:

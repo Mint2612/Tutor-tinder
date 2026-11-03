@@ -1,139 +1,62 @@
 # TutorMatch
 
-Source chung cho nhóm: **Spring Boot + React JavaScript + MariaDB**. Dùng tài liệu MVP v0.4 trong `Specs/README.md` và `Specs/Requirement.md` làm cơ sở.
+**Find the Right Tutor, Not Just Any Tutor.**
 
-## Công cụ
+Vietnamese tutor discovery MVP: React 19 + Vite, Java 21 + Spring Boot 4.1.2, MariaDB 11.4, Spring Security and Flyway. Parents manage students, answer a short learning survey, browse eligible verified tutors with swipe gestures, and request a trial lesson. Tutors manage their profiles and requests. Administrators review private identity evidence before approving visibility.
 
-| Phần | Công cụ |
-| --- | --- |
-| Backend | Java 21 (JDK), Spring Boot 4.1.2, Maven Wrapper |
-| Frontend | React JavaScript, Vite, Node.js 24 (theo `.node-version` / `.nvmrc`), npm |
-| Database | MariaDB 11.4 qua Docker Compose |
-| Schema | Flyway SQL migration, Hibernate `validate` |
-| IDE | IntelliJ IDEA cho Java hoặc VS Code + Java Extension Pack; DBeaver để xem DB |
+## Run locally
 
-Không cần cài Maven riêng: repo có `mvnw` và `mvnw.cmd`. Backend cần JDK, không chỉ JRE.
-
-## Clone và tạo cấu hình
+Requirements: Docker with Compose, or Java 21, Node 24 and MariaDB 11.4 for native development.
 
 ```sh
-git clone https://github.com/Mint2612/Tutor-tinder.git
-cd Tutor-tinder
 cp .env.example .env
-```
-
-Windows PowerShell dùng `Copy-Item .env.example .env`. Chỉ commit `.env.example`, không commit `.env`.
-
-## Cách 1: chạy toàn bộ bằng Docker
-
-Chỉ cần Git và Docker Desktop đang chạy:
-
-```sh
+# Set database passwords. Configure DELIVERY_URL / DELIVERY_KEY for real email and SMS.
+# Optionally set ADMIN_EMAIL and ADMIN_PASSWORD (16–72 characters) for first startup.
 docker compose --profile app up --build -d
 ```
 
-- Web: http://localhost:3000
-- Backend: http://localhost:8080/api/health
-- DB health: http://localhost:8080/actuator/health
+Open `http://localhost:3000`; API health: `http://localhost:8080/api/health`. Docker binds ports to loopback. `COOKIE_SECURE=false` supports local HTTP only; use `true` with HTTPS in deployment. Remove bootstrap admin credentials after provisioning; startup never changes an existing user's role or password. No administrator role is available in public registration.
 
-Backend tự chạy Flyway và tạo 20 gia sư giả qua profile `demo`. Lần đầu tải image/dependency có thể mất vài phút. Nếu API chưa sẵn sàng ngay sau khi web lên, xem log và chờ backend khởi động:
+**Registration requires a real delivery adapter.** It fails closed with a clear 503 if delivery is missing. Connect a trusted email/SMS webhook implementing the [delivery contract](docs/api.md); both independent messages must be verified before login. The UI accepts the challenge identifier and secret from each message. There are no default user passwords or frontend verification bypasses. An optional LLM endpoint enriches rankings; without it recommendations still work through deterministic scoring.
 
-```sh
-docker compose logs -f backend
-```
+For native development, start `docker compose up -d db`, run `./mvnw spring-boot:run` in `backend/`, and `npm ci && npm run dev` in `frontend/`. Vite proxies relative `/api` requests. See [environment setup](docs/environment.md).
 
-Dừng bằng `docker compose --profile app stop`. Cách này phù hợp chạy thử; khi sửa source, chạy lại lệnh `up --build`. Dùng cách 2 để hot reload frontend và debug Java.
+## Product flow
 
-## Cách 2: code trên máy / IDE
+1. Parent registers, verifies email and phone, logs in, and creates a student with recorded consent.
+2. Complete the six-question survey, select subjects, grade, location, schedule, format and budget.
+3. Tutor registers and verifies both channels, saves a teaching profile, uploads identity evidence and submits for review.
+4. Administrator opens the evidence for the current submission and approves or rejects with a reason. Profile changes require renewed approval.
+5. Parent requests recommendations. Mandatory constraints are applied first. At most 20 anonymized candidates enter LLM ranking; up to five profiles appear. LLM errors, invalid output, overload and timeout use deterministic fallback.
+6. Swipe right or use the interest button; swipe left or skip. Interest is persisted but is **not** acceptance.
+7. Parent sends a proposed trial time and message. Tutor accepts or rejects. Contact details are disclosed only on accepted requests. Duplicate pending requests are blocked by the database. Statuses update when the request list is refreshed.
 
-Cần Java 21, Node.js 24, npm và Docker Desktop. Nếu trước đó chạy cách 1, dừng backend/frontend Docker để tránh trùng cổng.
+No payments, chat, video, digital contracts, student logins or custom model training.
 
-Từ thư mục gốc:
-
-```sh
-docker compose up -d --wait db
-```
-
-Terminal 1 — backend:
+## Verification
 
 ```sh
-cd backend
-./mvnw spring-boot:run -Dspring-boot.run.profiles=demo
-```
+# Isolated MariaDB test database; does not use application data.
+docker compose --profile test up -d test-db
+docker compose --profile test build backend-test
+docker compose --profile test run --rm backend-test
 
-Windows dùng `./mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=demo"`.
-
-Terminal 2 — frontend:
-
-```sh
-cd frontend
-npm ci
-npm run dev
-```
-
-Mở http://localhost:5173. Vite proxy `/api` về backend cổng 8080. Muốn chạy backend không seed: bỏ `-Dspring-boot.run.profiles=demo`. Trong IntelliJ, mở `backend/pom.xml`, chọn JDK 21, chạy `TutorMatchApplication`; đặt working directory là `backend/`, active profile `demo` nếu muốn seed.
-
-Backend đọc `.env` gốc khi chạy từ thư mục gốc hoặc `backend/`. Biến môi trường có ưu tiên cao hơn file. Không cài thêm dotenv cho Java.
-
-## Database
-
-DBeaver kết nối `localhost:3306`, database/user/password theo `.env`. Nếu cổng bận, đổi `DB_PORT`; backend chạy local sẽ dùng giá trị mới. Nếu đổi cổng backend, frontend chạy local cần đặt `API_PROXY_TARGET` theo hướng dẫn ở `frontend/README.md`.
-
-Schema ở `backend/src/main/resources/db/migration/V1__initial_schema.sql`. Đổi schema bằng migration mới `V2__ten_thay_doi.sql`; không sửa migration đã chạy, không bật Hibernate `ddl-auto=update`.
-
-Seed chỉ chạy ở profile `demo`, chạy lại không nhân đôi. Các gia sư giả có trạng thái PENDING, chưa có embedding và không phải tài khoản đăng nhập. Không dùng profile demo với dữ liệu thật.
-
-MariaDB lưu trong volume `mariadb_data`. `docker compose stop` giữ dữ liệu. **`docker compose down -v` xóa volume và toàn bộ dữ liệu local.** Đổi mật khẩu `.env` không đổi mật khẩu của DB đã được khởi tạo; cần đổi trong MariaDB hoặc tạo lại DB local nếu có thể bỏ dữ liệu.
-
-## Kiểm tra trước PR
-
-Frontend:
-
-```sh
+# Native frontend checks, also used in CI
 cd frontend
 npm ci
 npm run lint
 npm run build
 ```
 
-Backend có unit test cosine và integration test Flyway/JPA/seed. Cách dễ nhất là dùng MariaDB test riêng trong Docker, không tác động DB phát triển:
+Tests include registration and channel activation, session expiry/reset revocation, CSRF, roles and ownership, consent, private evidence, review before approval, strict matching filters, fallback, request uniqueness, state transitions and contact gating. Fixtures are test-only; no invented records appear in the production UI. Optional `demo` Spring profile seeds fictional **unapproved**, non-login tutor records and is not enabled in the default app Compose service.
 
-```sh
-# Chạy từ thư mục gốc
-docker compose --profile test run --build --rm backend-test
-docker compose --profile test stop test-db
-```
+## Repository
 
-Nếu chạy `cd backend && ./mvnw verify` bằng JDK trên máy, phải cung cấp database test riêng bằng biến môi trường `DB_HOST`, `DB_PORT`, `DATABASE_NAME`, `DATABASE_USER`, `DATABASE_PASSWORD`. Không chạy integration test trên DB thật: test bật seed demo. CI cung cấp MariaDB test riêng và chạy `./mvnw -B verify`.
+- `frontend/src/components/`: Vietnamese auth, profile forms, discovery, dialogs and shared UI.
+- `frontend/src/lib/`: API/CSRF client and common presentation constants.
+- `backend/src/main/java/com/tutormatch/auth/`: sessions, password hashing, verification, delivery and admin provisioning.
+- `backend/src/main/java/com/tutormatch/platform/`: profile services, verification, recommendations and trial workflows.
+- `backend/src/main/resources/db/migration/`: immutable V1 foundation and additive V2 MVP schema.
+- `docs/`: [architecture](docs/architecture.md), [plan](docs/implementation-plan.md), [REST API](docs/api.md), [migration guide](docs/migrations.md), [implementation status and limits](docs/implementation-status.md).
 
-## Cấu trúc
-
-```text
-backend/
-  pom.xml, mvnw, mvnw.cmd        Maven Wrapper
-  src/main/java/com/tutormatch/  Application, controller, entity/repository mẫu, matching, seed
-  src/main/resources/           application.yaml và Flyway migrations
-  src/test/                     Unit và integration tests
-frontend/
-  src/                          React components và API helper
-  vite.config.js                Proxy API khi phát triển
-  nginx.conf                    SPA routing và proxy khi chạy Docker
-compose.yaml                    MariaDB + app + test profiles
-.github/workflows/ci.yml         Kiểm tra frontend và backend
-Specs/                          Tài liệu sản phẩm gốc, giữ nguyên
-docs/architecture.md            Quy ước và việc tiếp theo
-```
-
-## Làm việc nhóm
-
-1. Pull `main`, tạo nhánh `feat/ten-tinh-nang` hoặc `fix/ten-loi`.
-2. Frontend dùng npm, commit `frontend/package-lock.json`; chạy `npm ci` sau khi pull dependency mới.
-3. Backend dùng Maven Wrapper; version dependency được Spring Boot quản lý.
-4. Đổi DB phải có Flyway migration mới. Backend tự áp dụng migration lúc khởi động.
-5. Chạy kiểm tra trước PR, nhờ thành viên khác review. Maintainer nên bật branch protection và yêu cầu CI pass.
-
-## Đã có / chưa có
-
-Đã có trang giới thiệu responsive, frontend API helper, REST health, Actuator health có kiểm tra DB, schema nền tảng, entity/repository User mẫu, seed, cosine utility, unit/integration tests và GitHub Actions.
-
-Chưa có đăng nhập/Spring Security, CRUD hồ sơ, API matching, AI provider, học thử, đánh giá hay trang admin. Không có API công khai đọc hồ sơ trong bộ khung. Không đưa API key vào biến `VITE_*`; chúng được nhúng vào frontend. Dùng dữ liệu giả trong phát triển.
+The user-provided November 2026 specification takes precedence over older documents under `Specs/`. Production deployment and external delivery/LLM credentials are separate configuration work; build/test results do not verify actual SMS/email delivery, external model quality or browser gesture behavior.

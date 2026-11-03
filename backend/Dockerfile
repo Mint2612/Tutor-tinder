@@ -5,7 +5,7 @@ COPY mvnw pom.xml ./
 RUN chmod +x mvnw
 COPY src src
 # Integration tests need MariaDB and are run separately in CI/local verification.
-RUN ./mvnw -B package -DskipTests
+RUN --mount=type=cache,target=/root/.m2 ./mvnw -q -B package -DskipTests
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
