@@ -7,6 +7,23 @@ spring:
     url: jdbc:mariadb://${DB_HOST:localhost}:${DB_PORT:3306}/${DATABASE_NAME:tutormatch}
     username: ${DATABASE_USER:tutormatch}
     password: ${DATABASE_PASSWORD}
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${MAIL_AUTH:false}
+      mail.smtp.starttls.enable: ${MAIL_STARTTLS:false}
+      mail.smtp.starttls.required: ${MAIL_STARTTLS:false}
+      mail.smtp.ssl.enable: ${MAIL_SSL:false}
+      mail.smtp.connectiontimeout: 3000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
   jpa:
     open-in-view: false
     hibernate:
@@ -14,6 +31,7 @@ spring:
   flyway:
     enabled: true
 server:
+  forward-headers-strategy: framework
   port: ${BACKEND_PORT:8080}
   error:
     include-message: never
