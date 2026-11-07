@@ -93,3 +93,19 @@ Choose Database → New Database Connection → MariaDB, enter the values and us
 The SQL script reads application tables and masks hash values. Its SET only changes a connection-local variable. Verification/reset links are delivered through the configured SMTP provider (Mailpit locally, or Gmail with the setup in [environment.md](environment.md#gmail-smtp)), not stored as raw secrets in MariaDB. DBeaver's own database Session Manager concerns database connections; application login sessions are tracked through auth_sessions.
 
 Gmail SMTP connection check on 2026-11-07: STARTTLS and authentication succeeded with local credentials, and the backend health check passed after configuration reload. No email was sent by this connection check; actual recipient inbox delivery still requires the registration/reset flow. Credentials remain in the ignored `.env` file.
+
+## Sprint 3 — reapproval acceptance (2026-11-07)
+
+- Backend: `./mvnw -B -o test` against isolated MariaDB: **56 tests passed**, zero failures/errors/skips. Includes fresh evidence reads per resubmission, submission/revision audit fields, rejection reasons, file type/size/count limits, ownership, and profile/photo changes withdrawing approval and public access. Storage in these backend tests is mocked.
+- Browser: **6 Playwright tests passed**, Chromium desktop and 360px mobile emulation, against separate MariaDB, Mailpit and **real MinIO**. The main workflow uploads and downloads identity evidence, approves, edits the tutor profile, resubmits, confirms the approval button remains disabled until another download, then approves again and continues discovery.
+- Frontend Oxlint and Docker production builds passed. These checks do not claim testing on a physical phone or all browsers.
+
+Manual Sprint 3 review:
+
+1. Tutor: complete profile, upload PDF/PNG/JPEG (at most 5 MB each, five files), submit; reload and confirm pending status. Invalid/empty/oversized files must fail.
+2. Admin: open the submission; approval must fail until current evidence has been downloaded. Reject with a reason, verify the tutor sees it, then resubmit and approve after a fresh read. History displays decision, reason, submission ID and revision.
+3. Parent: use matching student conditions; approved/visible/activated tutor appears with a verification badge. Admin hiding the tutor removes public access and suggestions.
+4. Tutor: save an approved profile or replace/remove its photo; status becomes DRAFT and public profile/suggestions disappear. Resubmit; the earlier evidence read cannot authorize the new submission.
+5. Parent/another tutor: accessing `/api/admin/documents/{id}` must return 403; anonymous access must return 401. Evidence remains in a private storage bucket.
+
+Saving a profile, including saving unchanged form values, conservatively requires reapproval for an approved/pending profile. Rejected profiles retain the rejection reason until resubmission. Old audit rows have unknown submission/revision and are not backfilled. Team review checkboxes remain pending in the sprint sheet.

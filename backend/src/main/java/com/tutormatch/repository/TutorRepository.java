@@ -152,8 +152,7 @@ public class TutorRepository {
     db.update(
         "UPDATE tutor_profiles SET"
             // photo_url is deliberately absent: the photo changes only through setPhoto().
-            // Neither does the review state change here: only the evidence documents are reviewed,
-            // so editing the profile never sends an approved tutor back to review.
+            // Profile edits require another review before public display.
             + " display_name=?,province=?,hourly_rate=?,teaching_description=?,background=?,experience_years=?,teaching_style=?,availability=?,achievements=?,revision=revision+1"
             + " WHERE id=?",
         t.displayName().trim(),
@@ -166,6 +165,7 @@ public class TutorRepository {
         json(t.availability()),
         t.achievements() == null || t.achievements().isBlank() ? null : t.achievements().trim(),
         id);
+    withdrawReview(id);
     db.update("DELETE FROM tutor_subjects WHERE tutor_id=?", id);
     db.update("DELETE FROM tutor_grades WHERE tutor_id=?", id);
     db.update("DELETE FROM tutor_modes WHERE tutor_id=?", id);
@@ -174,8 +174,16 @@ public class TutorRepository {
     for (var m : t.modes()) db.update("INSERT INTO tutor_modes VALUES(?,?)", id, m);
   }
 
-  /** A new photo takes effect at once; it is not part of what an admin reviews. */
+  /** Photo changes require another review. */
   public void setPhoto(String id, String url) {
-    db.update("UPDATE tutor_profiles SET photo_url=? WHERE id=?", url, id);
+    db.update("UPDATE tutor_profiles SET photo_url=?,revision=revision+1 WHERE id=?", url, id);
+    withdrawReview(id);
+  }
+
+  private void withdrawReview(String id) {
+    db.update(
+        "UPDATE tutor_profiles SET workflow_state='DRAFT',verification_status='PENDING',"
+            + "verified_at=NULL,rejection_reason=NULL,submission_id=NULL,submitted_at=NULL"
+            + " WHERE id=? AND workflow_state IN ('APPROVED','PENDING_REVIEW')", id);
   }
 }

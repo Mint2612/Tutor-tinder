@@ -68,6 +68,7 @@ export function AdminReview({ tutor, decide, busy, run }) {
                 {new Date(entry.created_at).toLocaleString("vi-VN")} ·{" "}
                 {statusText[entry.decision]}
                 {entry.reason ? `: ${entry.reason}` : ""}
+                {entry.submission_id && ` · Lần nộp ${entry.submission_id} · Phiên bản ${entry.revision}`}
               </li>
             ))}
           </ul>

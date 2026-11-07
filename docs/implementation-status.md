@@ -19,6 +19,10 @@ The source has been reorganized into explicit backend layers and frontend screen
 | Local integrations | Mailpit SMTP inbox in Compose. Existing AI adapter retained but disabled; experimental AI additions and setup helper removed. |
 | Verification tooling | MariaDB regression suite, isolated browser-test Compose override, Playwright desktop/mobile workflows and browser checks in CI. The test image seeds Maven dependencies and preserves runtime cache in a dedicated volume. |
 
+## Latest Sprint 3 verification — 2026-11-07
+
+Profile saves and photo changes withdraw approval/pending submission; evidence changes do likewise. Resubmission requires a fresh admin evidence read. Decisions include submission ID and profile revision via additive migration V4. Latest checks: **56 backend tests** (`mvn test`), **6 Playwright desktop/mobile tests** with real MinIO in an isolated stack, frontend lint and production builds passed. See [verification.md](verification.md#sprint-3--reapproval-acceptance-2026-11-07) for acceptance steps. The counts below describe the earlier delivery run.
+
 ## Executed checks
 
 | Check | Result |

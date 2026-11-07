@@ -194,6 +194,20 @@ test("email, private review, saved interests, trial acceptance and password rese
     .getByRole("button", { name: "Phê duyệt sau khi kiểm tra", exact: true })
     .click();
   await expect(card.getByText("Đã xác minh", { exact: true })).toBeVisible();
+  // A profile change withdraws approval, then the new submission needs a fresh evidence read.
+  await page.getByLabel("Phương pháp giảng dạy").fill("Phương pháp mới cần quản trị viên duyệt lại.");
+  await page.getByRole("button", { name: "Lưu hồ sơ", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Gửi hồ sơ để duyệt", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Gửi hồ sơ để duyệt", exact: true }).click();
+  await expect(page.getByText("Đang chờ duyệt", { exact: true })).toBeVisible();
+  await admin.reload();
+  await card.getByRole("button", { name: "Xem hồ sơ & giấy tờ", exact: true }).click();
+  await expect(admin.getByRole("button", { name: "Phê duyệt sau khi kiểm tra", exact: true })).toBeDisabled();
+  const reread = admin.waitForEvent("download");
+  await admin.getByRole("button", { name: "Tải & xem identity.pdf", exact: true }).click();
+  await reread;
+  await admin.getByRole("button", { name: "Phê duyệt sau khi kiểm tra", exact: true }).click();
+  await expect(card.getByText("Đã xác minh", { exact: true })).toBeVisible();
   await adminContext.close();
 
   await logout(page);

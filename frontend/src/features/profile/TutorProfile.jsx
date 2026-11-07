@@ -15,7 +15,7 @@ export function TutorProfile() {
       <PageHeading
         eyebrow="KHÔNG GIAN GIA SƯ"
         title="Hồ sơ của tôi."
-        description="Cập nhật thông tin và ảnh bất cứ lúc nào. Quản trị viên chỉ duyệt phần minh chứng trước khi bạn xuất hiện với phụ huynh."
+        description="Thay đổi thông tin, ảnh hoặc giấy tờ sẽ cần gửi duyệt lại. Hồ sơ chỉ xuất hiện với phụ huynh sau khi được quản trị viên phê duyệt."
       />
       <section className="panel profile-head">
         <AvatarUploader />
@@ -35,7 +35,7 @@ export function TutorProfile() {
         save={(form) =>
           run(async () => {
             setTutor(await api("/tutor/profile", { method: "PUT", body: form }));
-            setNotification("Đã lưu thay đổi hồ sơ.");
+            setNotification("Đã lưu hồ sơ. Hồ sơ đã duyệt hoặc đang chờ duyệt cần gửi duyệt lại sau khi lưu.");
           })
         }
       />

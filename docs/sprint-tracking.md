@@ -37,9 +37,11 @@ Mã `S1-01`, `S2-01`… chỉ dùng cho sheet này; các mã US/FR trong Specs �
 
 ### Sprint 3 — Xác minh: tối đa 3 stories
 
-- [x] **S3-01 — Nộp hồ sơ xác minh:** Gia sư muốn gửi giấy tờ để Admin xem xét danh tính. **Done:** tải được tệp hợp lệ và gửi duyệt; tệp sai loại/quá giới hạn bị từ chối; trạng thái chờ duyệt được lưu; người không có quyền không đọc được giấy tờ.
-- [x] **S3-02 — Duyệt/từ chối:** Admin muốn xem bằng chứng của lần nộp hiện tại trước khi quyết định. **Done:** phải mở bằng chứng hiện tại trước khi duyệt; duyệt hoặc từ chối kèm lý do được lưu; gia sư xem được kết quả; có lịch sử quyết định.
-- [x] **S3-03 — Hiển thị đáng tin cậy:** Phụ huynh muốn chỉ thấy gia sư đủ điều kiện đã được duyệt. **Done:** chỉ tài khoản đã kích hoạt, hồ sơ đã duyệt và đang bật hiển thị mới được đưa vào khám phá; có huy hiệu xác minh; hồ sơ chưa duyệt/bị ẩn không xuất hiện; gia sư sửa hồ sơ thì cần duyệt lại.
+- [ ] **S3-01 — Nộp hồ sơ xác minh:** Gia sư muốn gửi giấy tờ để Admin xem xét danh tính. **Done:** tải được tệp hợp lệ và gửi duyệt; tệp sai loại/quá giới hạn bị từ chối; trạng thái chờ duyệt được lưu; người không có quyền không đọc được giấy tờ.
+- [ ] **S3-02 — Duyệt/từ chối:** Admin muốn xem bằng chứng của lần nộp hiện tại trước khi quyết định. **Done:** phải mở bằng chứng hiện tại trước khi duyệt; duyệt hoặc từ chối kèm lý do được lưu; gia sư xem được kết quả; có lịch sử quyết định gắn mã lần nộp và phiên bản hồ sơ.
+- [ ] **S3-03 — Hiển thị đáng tin cậy:** Phụ huynh muốn chỉ thấy gia sư đủ điều kiện (xác minh cấp 2 trở lên) đã được duyệt. **Done:** chỉ tài khoản đã kích hoạt, hồ sơ đã duyệt và đang bật hiển thị mới được đưa vào khám phá; có huy hiệu xác minh; hồ sơ chưa duyệt/bị ẩn không xuất hiện; gia sư lưu hồ sơ hoặc đổi/xóa ảnh, thay đổi giấy tờ thì thu hồi duyệt và phải gửi duyệt lại.
+
+Các tiêu chí Sprint 3 cần team demo/nghiệm thu trước khi đánh dấu checkbox và Goal achieved; kết quả kiểm thử kỹ thuật ghi tại [verification.md](verification.md).
 
 ### Sprint 4 — Khám phá: tối đa 3 stories
 

@@ -136,6 +136,9 @@ public class VerificationService {
                 () ->
                     new com.tutormatch.exception.BusinessException(404, "Không tìm thấy giấy tờ"));
     tutors.lock(d.tutorId());
+    // Reload after acquiring the tutor lock: a concurrent replacement must not count as read.
+    d = verification.content(id).orElseThrow(
+        () -> new com.tutormatch.exception.BusinessException(404, "Không tìm thấy giấy tờ"));
     byte[] bytes = d.content();
     if (bytes == null)
       bytes =

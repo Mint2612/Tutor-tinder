@@ -352,9 +352,9 @@ class MvpIntegrationTest {
         .andExpect(header().string("Cache-Control", "no-store"));
     mvc.perform(approve).andExpect(status().isOk());
     mvc.perform(get("/api/tutors/" + tutorId).with(as(parent))).andExpect(status().isOk());
-    // Editing information keeps the approval: only the evidence is reviewed.
+    // Saving profile information withdraws approval.
     tutors.save(tutor.id(), teaching());
-    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent))).andExpect(status().isOk());
+    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent))).andExpect(status().isNotFound());
     // New evidence withdraws it until the tutor submits again and an admin reads it.
     mvc.perform(
             multipart("/api/tutor/documents")
@@ -844,7 +844,7 @@ class MvpIntegrationTest {
   }
 
   @Test
-  void avatarIsStoredAsNormalisedJpegServedByTheApiAndKeepsAnApprovedProfileApproved()
+  void avatarIsStoredAsNormalisedJpegAndWithdrawsApproval()
       throws Exception {
     approveFixture();
     assertEquals("APPROVED", tutors.own(tutor.id()).workflowState());
@@ -852,7 +852,7 @@ class MvpIntegrationTest {
         JSON.readTree(
                 mvc.perform(photo(png(1200, 800), "image/png"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.workflow_state").value("APPROVED"))
+                    .andExpect(jsonPath("$.workflow_state").value("DRAFT"))
                     .andReturn()
                     .getResponse()
                     .getContentAsString())
@@ -1023,7 +1023,7 @@ class MvpIntegrationTest {
   }
 
   @Test
-  void profileEditsAndPhotoChangesNeverSendAnApprovedTutorBackToReview() throws Exception {
+  void profileEditsAndPhotoChangesWithdrawApproval() throws Exception {
     approveFixture();
     var request = JSON.readValue(body(teaching()), Map.class);
     request.put("displayName", "Tên mới sau khi duyệt");
@@ -1035,16 +1035,62 @@ class MvpIntegrationTest {
                 .contentType("application/json")
                 .content(body(request)))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.workflow_state").value("APPROVED"))
-        .andExpect(jsonPath("$.verification_status").value("APPROVED"));
-    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent)))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.display_name").value("Tên mới sau khi duyệt"))
-        .andExpect(jsonPath("$.hourly_rate").value(120000));
+        .andExpect(jsonPath("$.workflow_state").value("DRAFT"))
+        .andExpect(jsonPath("$.verification_status").value("PENDING"));
+    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent))).andExpect(status().isNotFound());
+    assertTrue(recommendations.recommend(studentId, parent.id()).stream()
+        .noneMatch(r -> r.tutor().id().equals(tutorId)));
+    approveFixture();
     mvc.perform(photo(png(80, 80), "image/png")).andExpect(status().isOk());
+    assertEquals("DRAFT", tutors.own(tutor.id()).workflowState());
+    approveFixture();
     mvc.perform(delete("/api/tutor/photo").with(as(tutor)).with(csrf())).andExpect(status().isOk());
-    assertEquals("APPROVED", tutors.own(tutor.id()).workflowState());
-    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent))).andExpect(status().isOk());
+    assertEquals("DRAFT", tutors.own(tutor.id()).workflowState());
+    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent))).andExpect(status().isNotFound());
+  }
+
+  @Test
+  void resubmissionRequiresFreshReadAndDecisionsKeepSubmissionHistory() throws Exception {
+    String doc = uploadEvidence("identity.pdf");
+    mvc.perform(post("/api/tutor/submit").with(as(tutor)).with(csrf())).andExpect(status().isOk());
+    String submission = tutors.own(tutor.id()).submissionId();
+    int revision = tutors.own(tutor.id()).revision();
+    mvc.perform(get("/api/admin/documents/" + doc).with(as(admin))).andExpect(status().isOk());
+    var decision = post("/api/admin/tutors/" + tutorId + "/decision").with(as(admin)).with(csrf())
+        .contentType("application/json").content(body(Map.of("approve", true)));
+    mvc.perform(decision).andExpect(status().isOk());
+    mvc.perform(get("/api/admin/tutors/" + tutorId).with(as(admin)))
+        .andExpect(jsonPath("$.audit[0].submission_id").value(submission))
+        .andExpect(jsonPath("$.audit[0].revision").value(revision));
+    tutors.save(tutor.id(), teaching());
+    assertNull(tutors.own(tutor.id()).submissionId());
+    assertNull(tutors.own(tutor.id()).verifiedAt());
+    mvc.perform(post("/api/tutor/submit").with(as(tutor)).with(csrf())).andExpect(status().isOk());
+    assertNotEquals(submission, tutors.own(tutor.id()).submissionId());
+    mvc.perform(decision).andExpect(status().isBadRequest());
+    var reject = post("/api/admin/tutors/" + tutorId + "/decision").with(as(admin)).with(csrf())
+        .contentType("application/json");
+    mvc.perform(reject.content(body(Map.of("approve", false, "reason", " "))))
+        .andExpect(status().isBadRequest());
+    mvc.perform(reject.content(body(Map.of("approve", false, "reason", "Giấy tờ bị mờ"))))
+        .andExpect(status().isOk());
+    mvc.perform(get("/api/tutor/profile").with(as(tutor)))
+        .andExpect(jsonPath("$.rejection_reason").value("Giấy tờ bị mờ"));
+    assertEquals(2, db.queryForObject("SELECT COUNT(*) FROM verification_audit WHERE tutor_id=?", Integer.class, tutorId));
+  }
+
+  @Test
+  void evidenceRejectsOversizedEmptyFilesAndTooManyDocuments() throws Exception {
+    for (byte[] bytes : List.of(new byte[0], new byte[5 * 1024 * 1024 + 1])) {
+      mvc.perform(multipart("/api/tutor/documents")
+          .file(new MockMultipartFile("file", "identity.pdf", "application/pdf", bytes))
+          .with(as(tutor)).with(csrf())).andExpect(status().isBadRequest());
+    }
+    for (int i = 0; i < 5; i++) uploadEvidence("identity-" + i + ".pdf");
+    mvc.perform(multipart("/api/tutor/documents")
+        .file(new MockMultipartFile("file", "sixth.pdf", "application/pdf", "%PDF-1.4".getBytes()))
+        .with(as(tutor)).with(csrf())).andExpect(status().isBadRequest());
+    assertEquals(5, db.queryForObject("SELECT COUNT(*) FROM tutor_documents WHERE tutor_id=?", Integer.class, tutorId));
   }
 
   @Test

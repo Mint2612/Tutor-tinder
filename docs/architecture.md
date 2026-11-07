@@ -49,7 +49,7 @@ Student responses are selected explicitly and returned only to the owning parent
 
 Parents may manage multiple student profiles. Each save requires consent and records its timestamp. The UI provides six survey questions and free-text needs; the API accepts at most 15 survey entries. Availability uses weekly AM/PM/EVENING slots.
 
-Tutor edits lock the profile, increase its revision, clear the current submission and return it to DRAFT. Evidence can be added/deleted only in DRAFT or REJECTED. Submission requires a complete profile and evidence. Admin approval requires that admin to have opened evidence for the current submission. Decisions are audited and can be inspected in the admin review UI.
+Tutor profile saves and photo changes lock the profile, increase its revision, and withdraw any approval or pending submission back to DRAFT. Rejected profiles retain their reason until resubmission. Evidence can be added, replaced, renamed or deleted; changes withdraw an approval or pending submission. Submission requires a complete profile and evidence. Admin approval requires that admin to have opened evidence for the current submission. Decisions are audited with the submission ID and profile revision and can be inspected in the admin review UI. Existing audit records retain null historical submission/revision values.
 
 Only email-activated, approved, visible tutors can be discovered. Tutor relation hydration uses three batch queries for subjects, grades and teaching modes rather than a separate query per relation per candidate.
 

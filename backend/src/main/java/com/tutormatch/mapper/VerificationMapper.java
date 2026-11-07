@@ -20,7 +20,8 @@ public class VerificationMapper {
 
   public AuditResponse audit(Map<String, Object> r) {
     return new AuditResponse(
-        text(r, "id"), text(r, "decision"), text(r, "reason"), instant(r.get("created_at")));
+        text(r, "id"), text(r, "decision"), text(r, "reason"), instant(r.get("created_at")),
+        text(r, "submission_id"), r.get("revision") == null ? null : number(r, "revision"));
   }
 
   public DocumentContent content(Map<String, Object> r) {

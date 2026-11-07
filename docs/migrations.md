@@ -13,3 +13,7 @@ Before deployment, back up MariaDB and test migrations on a restored copy. Keep 
 Verification after setup: `docker compose --profile test run --rm backend-test` exercises V1/V2 against the isolated MariaDB test database. Tests create explicitly marked fixtures, never production users. Test database is tmpfs. Stop it without deleting application volumes with `docker compose stop test-db`.
 
 Email-only activation reuses `email_verified`; `phone_verified` remains for schema compatibility and is no longer required by authentication/discovery. No migration rewrites existing verification flags, and V1/V2 checksums remain unchanged.
+
+## V4 — Verification audit submission
+
+Adds nullable `submission_id` and `revision` to `verification_audit`. New decisions record the reviewed submission and profile revision. Existing decisions keep null values because their historical submission cannot be reconstructed reliably. No account, evidence or decision records are removed.
