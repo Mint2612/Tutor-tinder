@@ -13,3 +13,6 @@ thai.md
 *.iml
 .vscode/*
 !.vscode/extensions.json
+
+# Local AI runtime and model weights
+.local/

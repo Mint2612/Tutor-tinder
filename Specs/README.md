@@ -78,7 +78,7 @@ Xác minh theo cấp, hiển thị bằng huy hiệu cho phụ huynh.
 | Cấp | Nội dung | Huy hiệu | MVP |
 |---|---|---|---|
 | 1 | Email, số điện thoại | (cơ bản) | Bắt buộc |
-| 2 | Danh tính: Admin đối chiếu thẻ sinh viên hoặc giấy tờ qua cuộc gọi video ngắn, rồi đánh dấu "đã xác minh" | "Đã xác minh danh tính" | **Bắt buộc để được hiển thị** (an toàn cho trẻ em) |
+| 2 | Danh tính: Admin đối chiếu thẻ sinh viên hoặc giấy tờ (CCCD, CMND) qua cuộc gọi video ngắn, ảnh chụp, rồi đánh dấu "đã xác minh" | "Đã xác minh danh tính" | **Bắt buộc để được hiển thị** (an toàn cho trẻ em) |
 | 3 | Học lực, giải thưởng: gia sư tự khai | "Tự khai" (chưa xác minh) | Tùy chọn |
 | 4 | Đánh giá từ buổi học thử | Điểm đánh giá | Có (FR-09) |
 

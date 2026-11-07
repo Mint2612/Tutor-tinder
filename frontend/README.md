@@ -10,4 +10,6 @@ React JavaScript + Vite. Xem hướng dẫn chạy tại [README gốc](../READM
 
 Có thể đổi proxy lúc chạy: `API_PROXY_TARGET=http://localhost:8081 npm run dev`. Windows PowerShell đặt `$env:API_PROXY_TARGET="http://localhost:8081"` trước khi chạy lệnh.
 
-Thêm component trong `src/components/`, màn hình trong `src/pages/`, API client trong `src/lib/`. Không đưa secrets hoặc AI key vào frontend.
+Thêm component dùng chung trong `src/components/`, component theo feature trong `src/features/`, màn hình trong `src/pages/`, API client trong `src/services/`. Không đưa secrets hoặc AI key vào frontend.
+
+Điều phối nằm trong `src/app/`; hook dùng chung nằm trong `src/hooks/`. Hash routing hỗ trợ refresh, back và liên kết xác thực/đặt lại mật khẩu từ email. `npm run test:e2e` chạy Playwright; xem [hướng dẫn kiểm thử](../docs/verification.md).

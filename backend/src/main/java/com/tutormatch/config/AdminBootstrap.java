@@ -1,0 +1,33 @@
+package com.tutormatch.config;
+
+import com.tutormatch.service.AuthService;
+import java.nio.charset.StandardCharsets;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.*;
+import org.springframework.stereotype.Component;
+
+/** Explicit deployment-only provisioning; never available as a public registration role. */
+@Component
+public class AdminBootstrap implements ApplicationRunner {
+  private final AuthService auth;
+  private final String email, password;
+
+  public AdminBootstrap(
+      AuthService auth,
+      @Value("${ADMIN_EMAIL:}") String email,
+      @Value("${ADMIN_PASSWORD:}") String password) {
+    this.auth = auth;
+    this.email = email.trim().toLowerCase(java.util.Locale.ROOT);
+    this.password = password;
+  }
+
+  public void run(ApplicationArguments args) {
+    if (email.isBlank() && password.isBlank()) return;
+    if (email.isBlank()
+        || password.length() < 16
+        || password.getBytes(StandardCharsets.UTF_8).length > 72)
+      throw new IllegalStateException(
+          "Admin provisioning requires email and a 16–72 character password");
+    auth.provisionAdmin(email, password);
+  }
+}

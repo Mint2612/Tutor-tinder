@@ -41,30 +41,30 @@ Các US của Sprint 2: [US-02](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIE
 
 - [ ] **S3-01 — Nộp hồ sơ xác minh:** Gia sư muốn gửi giấy tờ để Admin xem xét danh tính. **Done:** tải được tệp hợp lệ và gửi duyệt; tệp sai loại/quá giới hạn bị từ chối; trạng thái chờ duyệt được lưu; người không có quyền không đọc được giấy tờ.
 - [ ] **S3-02 — Duyệt/từ chối:** Admin muốn xem bằng chứng của lần nộp hiện tại trước khi quyết định. **Done:** phải mở bằng chứng hiện tại trước khi duyệt; duyệt hoặc từ chối kèm lý do được lưu; gia sư xem được kết quả; có lịch sử quyết định.
-- [ ] **S3-03 — Hiển thị đáng tin cậy:** Phụ huynh muốn chỉ thấy gia sư đủ điều kiện đã được duyệt. **Done:** chỉ tài khoản đã kích hoạt, hồ sơ đã duyệt và đang bật hiển thị mới được đưa vào khám phá; có huy hiệu xác minh; hồ sơ chưa duyệt/bị ẩn không xuất hiện; gia sư sửa hồ sơ thì cần duyệt lại.
+- [ ] **S3-03 — Hiển thị đáng tin cậy:** Phụ huynh muốn chỉ thấy gia sư đủ điều kiện (xác minh cấp 2 trở lên) đã được duyệt. **Done:** chỉ tài khoản đã kích hoạt, hồ sơ đã duyệt và đang bật hiển thị mới được đưa vào danh sách đề xuất; có huy hiệu xác minh; hồ sơ chưa duyệt/bị ẩn không xuất hiện; gia sư sửa hồ sơ thì cần duyệt lại.
 
 Các US của Sprint 3: [US-03](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIES.md#us-03-gia-sư-tạo-hồ-sơ-và-khai-báo-phương-pháp-dạy), [US-04](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIES.md#us-04-xác-minh-hồ-sơ-gia-sư).
 
-### Sprint 4 — Khám phá: tối đa 3 stories
+### Sprint 4 — Matching hai chiều: tối đa 3 stories
 
-- [ ] **S4-01 — Gợi ý theo điều kiện:** Phụ huynh muốn có danh sách gia sư đáp ứng nhu cầu bắt buộc. **Done:** lọc đúng môn, lớp, hình thức, lịch, ngân sách và cùng tỉnh khi học trực tiếp; chỉ lấy gia sư đủ điều kiện; xếp hạng bằng luật; có thông báo khi không có kết quả.
-- [ ] **S4-02 — Xem chi tiết:** Phụ huynh muốn hiểu hồ sơ gia sư trước khi lựa chọn. **Done:** mở được chi tiết từ thẻ; thấy môn, kinh nghiệm, phương pháp, học phí, lịch và trạng thái xác minh; chưa lộ liên hệ riêng hoặc giấy tờ.
-- [ ] **S4-03 — Thích/bỏ qua:** Phụ huynh muốn lưu lựa chọn khi duyệt gia sư. **Done:** thao tác được bằng vuốt và nút tương đương; lựa chọn được lưu ở backend; tải lại kiểm tra được; thao tác thích chưa tạo yêu cầu hay chấp nhận học thử.
+- [ ] **S4-01 — Gợi ý hai chiều theo điều kiện:** Phụ huynh và gia sư muốn có danh sách thẻ đáp ứng điều kiện bắt buộc của cả hai bên. **Done:** lọc hai chiều đúng môn, lớp, hình thức, lịch, học phí/ngân sách và cùng tỉnh khi học trực tiếp; phụ huynh có danh sách riêng cho từng hồ sơ học sinh, gia sư có danh sách thẻ học sinh; chỉ gia sư đã duyệt và đang bật hiển thị mới tham gia; xếp hạng bằng luật; có thông báo khi không có kết quả.
+- [ ] **S4-02 — Thẻ sơ lược và tag:** Mỗi bên muốn xem nhanh thông tin sơ lược của thẻ và biết thẻ do hệ thống đề xuất hay do bên kia quan tâm. **Done:** thẻ gia sư hiển thị môn, huy hiệu xác minh, kinh nghiệm tóm tắt, học phí, khu vực; thẻ học sinh cho gia sư chủ yếu là thông tin học sinh, không có tên, trường, địa chỉ, ảnh hay liên hệ phụ huynh; thẻ có tag "Đề xuất" hoặc "Quan tâm bạn" (chữ kèm icon).
+- [ ] **S4-03 — OK/Bỏ qua và Match:** Mỗi bên muốn chủ động chọn và chỉ kết nối khi cả hai cùng quan tâm. **Done:** thao tác được bằng vuốt và nút tương đương; lựa chọn lưu ở backend; OK của một bên đưa thẻ lên đầu danh sách bên kia với tag "Quan tâm bạn"; cả hai OK thì tạo Match và thông báo; Bỏ qua ẩn cặp khỏi cả hai danh sách mà không báo lý do; giới hạn x = 3 lượt OK vào thẻ "Quan tâm bạn" và 10 lượt OK tổng mỗi ngày mỗi hồ sơ, hết giới hạn thì khóa OK nhưng giữ thẻ; thẻ "Quan tâm bạn" hết hạn sau 7 ngày; tải lại kiểm tra được.
 
 Các US của Sprint 4: [US-05](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIES.md#us-05-gợi-ý-gia-sư-dạng-thẻ-kèm-mức-phù-hợp-lấy-cảm-hứng-cách-matching-tinder), [US-06](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIES.md#us-06-xem-hồ-sơ-chi-tiết-gia-sư).
 
-### Sprint 5 — Học thử: tối đa 4 stories
+### Sprint 5 — Kết nối và học thử: tối đa 4 stories
 
-- [ ] **S5-01 — Gửi yêu cầu:** Phụ huynh muốn đề xuất buổi học thử với gia sư đã chọn. **Done:** gửi được hồ sơ học sinh thuộc mình, thời gian đề xuất và lời nhắn; yêu cầu hợp lệ được lưu ở trạng thái chờ và xuất hiện trong danh sách hai bên.
-- [ ] **S5-02 — Phản hồi yêu cầu:** Gia sư muốn chấp nhận hoặc từ chối yêu cầu của mình. **Done:** chỉ gia sư nhận yêu cầu được phản hồi khi yêu cầu còn chờ và chưa hết hạn; trạng thái cập nhật; phụ huynh thấy kết quả khi làm mới danh sách.
-- [ ] **S5-03 — Chia sẻ liên hệ:** Hai bên muốn liên hệ để thống nhất buổi học sau khi chấp nhận. **Done:** chỉ phụ huynh sở hữu yêu cầu và gia sư liên quan thấy liên hệ khi trạng thái đã chấp nhận; trạng thái chờ/từ chối/hết hạn chưa lộ liên hệ.
-- [ ] **S5-04 — Yêu cầu còn hiệu lực:** Phụ huynh muốn phân biệt yêu cầu đang chờ và đã hết hạn để tiếp tục tìm gia sư. **Done:** chặn yêu cầu chờ trùng giữa cùng học sinh và gia sư; yêu cầu quá hạn hiện trạng thái hết hạn khi truy cập; không thể chấp nhận yêu cầu đã hết hạn hay phản hồi lần hai.
+- [ ] **S5-01 — Xem hồ sơ chi tiết sau Match:** Hai bên muốn hiểu hồ sơ của nhau trước khi quyết định. **Done:** chỉ cặp đã Match mở được hồ sơ chi tiết; phụ huynh thấy hồ sơ đầy đủ của gia sư, gia sư thấy hồ sơ học sinh chi tiết vẫn ẩn danh; chưa lộ liên hệ, giấy tờ gốc hay bảng điểm.
+- [ ] **S5-02 — Xác nhận kết nối và chia sẻ liên hệ:** Hai bên muốn chỉ trao đổi liên hệ khi cùng đồng ý. **Done:** mỗi bên chọn xác nhận hoặc từ chối đúng một lần; cả hai xác nhận thì cặp thành "Đã kết nối" và hiển thị liên hệ chéo (phía học sinh chỉ có liên hệ phụ huynh); từ chối hoặc quá 3 ngày thì đóng cặp, bên kia nhận thông báo trung tính, chưa lộ liên hệ.
+- [ ] **S5-03 — Đặt lịch học thử:** Hai bên muốn thống nhất lịch buổi học thử. **Done:** chỉ cặp "Đã kết nối" đặt được lịch; một bên đề xuất 1 đến 3 khung giờ, bên kia xác nhận hoặc đề xuất giờ khác; lịch chốt thì cả hai nhận thông báo.
+- [ ] **S5-04 — Lịch còn hiệu lực:** Hai bên muốn biết lịch đang chờ, đã chốt, đã hủy hay hết hạn để xử lý tiếp. **Done:** mỗi cặp chỉ có một lịch đang hoạt động; lịch quá hạn phản hồi hiện trạng thái hết hạn khi truy cập; hủy lịch bắt buộc có lý do; không xác nhận lịch đã hết hạn hay phản hồi lần hai.
 
-### Sprint 6 — Hoàn thiện: tối đa 2 stories cam kết + 1 bonus
+### Sprint 6 — Hoàn thiện: tối đa 2 stories cam kết + 1 bonus (chỉ sửa 2 dòng)
 
-- [ ] **S6-01 — Sử dụng trên máy tính/điện thoại:** Người dùng muốn hoàn thành luồng chính trên thiết bị của mình. **Done:** nghiệm thu trên trình duyệt máy tính và điện thoại từ đăng nhập, hồ sơ, duyệt gia sư, khám phá đến học thử; kiểm tra thêm đăng ký/xác thực/khôi phục theo Sprint 1; không có lỗi chặn luồng, nội dung bị che hoặc thao tác không sử dụng được; vuốt và nút đều hoạt động.
+- [ ] **S6-01 — Sử dụng trên máy tính/điện thoại:** Người dùng muốn hoàn thành luồng chính trên thiết bị của mình. **Done:** nghiệm thu trên trình duyệt máy tính và điện thoại từ đăng nhập, hồ sơ, duyệt gia sư, gợi ý hai chiều, Match, xác nhận kết nối đến học thử; kiểm tra thêm đăng ký/xác thực/khôi phục theo Sprint 1; không có lỗi chặn luồng, nội dung bị che hoặc thao tác không sử dụng được; vuốt và nút đều hoạt động.
 - [ ] **S6-02 — Trạng thái rõ ràng và thử lại:** Người dùng muốn biết thao tác đang xử lý, thành công hay thất bại để tiếp tục sử dụng. **Done:** các màn hình chính có trạng thái tải/trống/lỗi phù hợp; thông báo tiếng Việt dễ hiểu; chặn gửi lặp khi đang xử lý; thao tác lỗi có thể thử lại sau khi nguyên nhân được khắc phục.
-- [ ] **S6-B01 — AI gợi ý có giải thích (bonus):** Phụ huynh muốn hiểu vì sao một gia sư phù hợp. **Done:** dùng nhà cung cấp AI thật để xếp hạng tối đa 20 ứng viên đã lọc, trả tối đa 5 kết quả kèm giải thích; chỉ gửi dữ liệu ẩn danh được cho phép; đầu ra được kiểm tra; lỗi/đầu ra sai/quá thời gian chuyển sang luật trong dưới 10 giây và vẫn giữ các điều kiện bắt buộc.
+- [ ] **S6-B01 — AI gợi ý có giải thích (bonus):** Phụ huynh và gia sư muốn hiểu vì sao một cặp phù hợp. **Done:** dùng nhà cung cấp AI thật để xếp hạng tối đa 20 ứng viên đã lọc cho mỗi danh sách; mức phù hợp là một giá trị chung cho cặp, hiển thị giống nhau ở hai phía; trả tối đa 5 kết quả kèm giải thích; chỉ gửi dữ liệu ẩn danh được cho phép; đầu ra được kiểm tra; lỗi/đầu ra sai/quá thời gian chuyển sang luật trong dưới 10 giây và vẫn giữ các điều kiện bắt buộc.
 
 ## Cách ghi nhận kết quả
 
