@@ -81,13 +81,15 @@ public class TutorRepository {
                 + " g.tutor_id=t.id AND g.grade=?) AND EXISTS(SELECT 1 FROM tutor_modes m WHERE"
                 + " m.tutor_id=t.id AND m.mode=?) AND (?='ONLINE' OR LOWER(t.province)=LOWER(?))"
                 + " AND NOT EXISTS(SELECT 1 FROM swipe_interactions w WHERE w.student_id=? AND"
-                + " w.tutor_id=t.id) ORDER BY t.experience_years DESC,t.hourly_rate,t.id",
+                + " w.tutor_id=t.id) AND NOT EXISTS(SELECT 1 FROM matching_pairs p WHERE p.student_id=? AND p.tutor_id=t.id"
+                + " AND (p.status<>'OPEN' OR p.parent_choice IS NOT NULL OR p.expires_at<=CURRENT_TIMESTAMP))"
+                + " ORDER BY t.experience_years DESC,t.hourly_rate,t.id",
             s.budget(),
             s.grade(),
             s.mode(),
             s.mode(),
             s.province(),
-            s.id()));
+            s.id(),s.id()));
   }
 
   /** Hydrate relations in three bounded queries rather than one query per tutor/relationship. */

@@ -116,7 +116,7 @@ class MvpIntegrationTest {
         200000,
         List.of("1_EVENING"),
         "Củng cố kiến thức",
-        Map.of("learning", "practice"),
+        Map.of("goal", "foundation", "learning", "practice", "difficulty", "understanding", "pace", "step_by_step", "support", "feedback", "lesson", "examples"),
         consent);
   }
 

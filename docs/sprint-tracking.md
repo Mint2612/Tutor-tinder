@@ -11,7 +11,7 @@ Khung ban đầu: 6 sprints × 90 phút; mỗi sprint có 60 phút Build & Test 
 | Sprint 1 | Phụ huynh và gia sư có thể đăng ký, xác thực, đăng nhập và khôi phục tài khoản đúng vai trò. | ☐ Yes ☐ No | 4 / 4 |
 | Sprint 2 | Phụ huynh lưu được hồ sơ và nhu cầu học của con; gia sư hoàn thiện được hồ sơ giảng dạy. | ☐ Yes ☐ No | 3 / 3 |
 | Sprint 3 | Admin xác minh được gia sư; chỉ hồ sơ được duyệt mới có thể xuất hiện với phụ huynh. | ☐ Yes ☐ No | 3 / 3 |
-| Sprint 4 | Phụ huynh tìm được gia sư phù hợp, xem chi tiết và lưu lựa chọn thích/bỏ qua. | ☐ Yes ☐ No | 3 / 3 |
+| Sprint 4 | Phụ huynh và gia sư nhận thẻ phù hợp hai chiều, chọn OK/Bỏ qua và tạo Match khi cùng quan tâm. | ☐ Yes ☐ No | 3 / 3 |
 | Sprint 5 | Phụ huynh gửi được yêu cầu học thử; gia sư phản hồi và hai bên thấy liên hệ sau khi chấp nhận. | ☐ Yes ☐ No | Để sau |
 | Sprint 6 | Người dùng hoàn thành được luồng tìm gia sư đến học thử ổn định trên trình duyệt máy tính và điện thoại. | ☐ Yes ☐ No | Để sau |
 | **Tổng hiện tại** | **13 stories thuộc Sprint 1–4** | | **13 / 13** |
@@ -43,11 +43,15 @@ Mã `S1-01`, `S2-01`… chỉ dùng cho sheet này; các mã US/FR trong Specs �
 
 Các tiêu chí Sprint 3 cần team demo/nghiệm thu trước khi đánh dấu checkbox và Goal achieved; kết quả kiểm thử kỹ thuật ghi tại [verification.md](verification.md).
 
-### Sprint 4 — Khám phá: tối đa 3 stories
+### Sprint 4 — Matching hai chiều: tối đa 3 stories
 
-- [x] **S4-01 — Gợi ý theo điều kiện:** Phụ huynh muốn có danh sách gia sư đáp ứng nhu cầu bắt buộc. **Done:** lọc đúng môn, lớp, hình thức, lịch, ngân sách và cùng tỉnh khi học trực tiếp; chỉ lấy gia sư đủ điều kiện; xếp hạng bằng luật; có thông báo khi không có kết quả.
-- [x] **S4-02 — Xem chi tiết:** Phụ huynh muốn hiểu hồ sơ gia sư trước khi lựa chọn. **Done:** mở được chi tiết từ thẻ; thấy môn, kinh nghiệm, phương pháp, học phí, lịch và trạng thái xác minh; chưa lộ liên hệ riêng hoặc giấy tờ.
-- [x] **S4-03 — Thích/bỏ qua:** Phụ huynh muốn lưu lựa chọn khi duyệt gia sư. **Done:** thao tác được bằng vuốt và nút tương đương; lựa chọn được lưu ở backend; mở lại và bỏ quan tâm được ở màn hình Đã quan tâm sau khi tải lại; thao tác thích chưa tạo yêu cầu hay chấp nhận học thử.
+- [ ] **S4-01 — Gợi ý hai chiều theo điều kiện:** Phụ huynh và gia sư muốn có danh sách thẻ đáp ứng điều kiện bắt buộc của cả hai bên. **Done:** lọc hai chiều đúng môn, lớp, hình thức, lịch, học phí/ngân sách và cùng tỉnh khi học trực tiếp; phụ huynh có danh sách riêng cho từng hồ sơ học sinh, gia sư có danh sách thẻ học sinh; chỉ gia sư đã duyệt và đang bật hiển thị mới tham gia; xếp hạng bằng luật; có thông báo khi không có kết quả.
+- [ ] **S4-02 — Thẻ sơ lược và tag:** Mỗi bên muốn xem nhanh thông tin sơ lược của thẻ và biết thẻ do hệ thống đề xuất hay do bên kia quan tâm. **Done:** thẻ gia sư hiển thị môn, huy hiệu xác minh, kinh nghiệm tóm tắt, học phí, khu vực; thẻ học sinh cho gia sư chủ yếu là thông tin học sinh, không có tên, trường, địa chỉ, ảnh hay liên hệ phụ huynh; thẻ có tag "Đề xuất" hoặc "Quan tâm bạn" (chữ kèm icon).
+- [ ] **S4-03 — OK/Bỏ qua và Match:** Mỗi bên muốn chủ động chọn và chỉ kết nối khi cả hai cùng quan tâm. **Done:** thao tác được bằng vuốt và nút tương đương; lựa chọn lưu ở backend; OK của một bên đưa thẻ lên đầu danh sách bên kia với tag "Quan tâm bạn"; cả hai OK thì tạo Match và thông báo; Bỏ qua ẩn cặp khỏi cả hai danh sách mà không báo lý do; giới hạn x = 3 lượt OK vào thẻ "Quan tâm bạn" và 10 lượt OK tổng mỗi ngày mỗi hồ sơ, hết giới hạn thì khóa OK nhưng giữ thẻ; thẻ "Quan tâm bạn" hết hạn sau 7 ngày; tải lại kiểm tra được.
+
+
+**Cập nhật kỹ thuật 07/11/2026:** Đã triển khai S4-01/S4-02/S4-03 và xác minh 3/3 bằng 79 kiểm thử backend, 6 kiểm thử trình duyệt desktop/mobile, lint và build frontend. Chi tiết tại [bằng chứng Sprint 4](sprint4-matching.md). Checkbox nghiệm thu và Goal achieved vẫn để team chốt ở Sprint Review; chưa ghi nhận thay Product Owner.
+
 
 ### Sprint 5 — Học thử: tối đa 4 stories
 

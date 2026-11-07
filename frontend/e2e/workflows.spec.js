@@ -58,7 +58,7 @@ async function logout(page) {
   ).toHaveCount(0);
 }
 async function swipeRight(page, mobile) {
-  const visual = page.locator(".tutor-card .card-visual");
+  const visual = page.locator(".matching-card h2");
   await visual.scrollIntoViewIfNeeded();
   const box = await visual.boundingBox();
   const x = box.x + box.width / 2,
@@ -123,7 +123,7 @@ async function register(page, request, role, email, displayName) {
   await login(page, email);
 }
 
-test("email, private review, saved interests, trial acceptance and password reset", async ({
+test("Sprint 4: two-way anonymous cards, swipe, Match, persisted choices and password reset", async ({
   page,
   browser,
   request,
@@ -260,140 +260,88 @@ test("email, private review, saved interests, trial acceptance and password rese
     page.getByRole("heading", { name: "Con kiểm thử", exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: /Khám phá gia sư cho/ }).click();
-  await expect(page.locator(".tutor-card")).toBeVisible();
-  // Earlier fixtures may remain during local reruns; persisted skips advance through them.
-  for (let i = 0; i < 20; i++) {
-    if (!(await page.locator(".tutor-card").count())) {
-      await page
-        .getByRole("button", { name: "Lấy gợi ý mới", exact: true })
-        .click();
-      await expect(page.locator(".tutor-card")).toBeVisible();
-    }
-    if ((await page.locator(".tutor-card h2").textContent()).includes(suffix))
-      break;
-    await page
-      .getByRole("button", { name: "Bỏ qua gia sư", exact: true })
-      .click();
-    await expect(
-      page.getByRole("status").filter({ hasText: "Đang xử lý…" }),
-    ).toHaveCount(0);
+  await expect(page.locator(".matching-card")).toBeVisible();
+  // Older fictional tutors from a local rerun may still be eligible; skip them persistently.
+  for (let i = 0; i < 50; i++) {
+    await expect(page.locator(".matching-card h2")).toBeVisible();
+    const previousTitle = await page.locator(".matching-card h2").textContent();
+    if (previousTitle.includes(suffix)) break;
+    await page.getByRole("button", { name: "Bỏ qua", exact: true }).click();
+    await expect(page.locator(".matching-card h2")).not.toHaveText(previousTitle);
   }
-  await expect(page.locator(".tutor-card h2")).toHaveText(`Gia sư ${suffix}`);
+  await expect(page.locator(".matching-card h2")).toHaveText(`Gia sư ${suffix}`);
   // Parents only ever see the display name, never the legal name.
   await expect(page.getByText("Nguyễn Văn Kiểm Thử")).toHaveCount(0);
+  await expect(page.locator(".matching-card").getByText("✦ Đề xuất", { exact: true })).toBeVisible();
   await swipeRight(page, testInfo.project.name === "mobile");
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await page.getByRole("button", { name: "Đóng cửa sổ", exact: true }).click();
-  await page.getByRole("button", { name: "Đã quan tâm", exact: true }).click();
-  await expect(
-    page.getByRole("heading", { name: `Gia sư ${suffix}`, exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText("Đã gửi sự quan tâm. Chờ bên kia cùng OK để tạo Match.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.getByRole("button", { name: "Đã OK & Match", exact: true }).click();
+  await expect(page.locator(".matching-card h2")).toHaveText(`Gia sư ${suffix}`);
   await page.reload();
-  await expect(
-    page.getByRole("heading", { name: `Gia sư ${suffix}`, exact: true }),
-  ).toBeVisible();
-  const originalStudent = (
-    await (await page.request.get("/api/students")).json()
-  )[0];
+  await expect(page.getByText("Bạn đã OK. Đang chờ bên kia phản hồi.", { exact: true })).toBeVisible();
+  expect((await (await page.request.get("/api/lessons")).json()).length).toBe(0);
+  const originalStudent = (await (await page.request.get("/api/students")).json())[0];
+
+  const tutorContext = await browser.newContext({ baseURL: "http://127.0.0.1:33000" });
+  const tutorPage = await tutorContext.newPage();
+  await login(tutorPage, tutorEmail);
+  await tutorPage.getByRole("button", { name: "Tìm học sinh", exact: true }).click();
+  await expect(tutorPage.locator(".matching-card h2")).toHaveText("Học sinh lớp 6");
+  await expect(tutorPage.locator(".matching-card").getByText("♡ Quan tâm bạn", { exact: true })).toBeVisible();
+  const tutorFeed = await (await tutorPage.request.get("/api/tutor/matching")).json();
+  expect(tutorFeed.cards[0].studentId).toBe(originalStudent.id);
+  const anonymous = JSON.stringify(tutorFeed.cards[0]);
+  expect(anonymous).not.toContain(parentEmail);
+  expect(anonymous).not.toContain("Con kiểm thử");
+  expect(anonymous).not.toContain("Phụ huynh kiểm thử");
+  await tutorPage.getByRole("button", { name: "OK — quan tâm", exact: true }).click();
+  await expect(tutorPage.getByText("Hai bên đã cùng OK. Bạn có một Match mới!", { exact: true })).toBeVisible();
+  await tutorPage.getByRole("button", { name: "Đã OK & Match", exact: true }).click();
+  await expect(tutorPage.locator(".matching-card").getByText("✓ Đã Match", { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.locator(".matching-card").getByText("✓ Đã Match", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Thông báo Match")).toBeVisible();
+  expect((await (await page.request.get("/api/lessons")).json()).length).toBe(0);
+
   const secondStudent = await createStudent(page.request, {
-    nickname: "Em khác",
-    grade: 6,
-    subjects: ["Ngữ văn"],
-    province: "Hà Nội",
-    mode: "ONLINE",
-    budget: 200000,
-    availability: ["1_EVENING"],
-    needs: "Hỗ trợ Ngữ văn",
-    survey,
-    consent: true,
+    nickname: "Học sinh thứ hai", grade: 6, subjects: ["Toán"], province: "Hà Nội",
+    mode: "ONLINE", budget: 200000, availability: ["1_EVENING"],
+    needs: "Củng cố nền tảng", survey, consent: true,
   });
   await page.reload();
-  await expect(
-    page.getByRole("heading", { name: `Gia sư ${suffix}`, exact: true }),
-  ).toBeVisible();
-  await page
-    .getByRole("combobox", { name: "Hồ sơ học sinh", exact: true })
-    .selectOption(secondStudent.id);
-  await expect(
-    page.getByRole("heading", {
-      name: "Chưa có gia sư đã quan tâm phù hợp",
-      exact: true,
-    }),
-  ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Khám phá gia sư", exact: true })
-    .click();
-  await expect(
-    page.getByRole("heading", {
-      name: "Sẵn sàng gặp gia sư phù hợp?",
-      exact: true,
-    }),
-  ).toBeVisible();
-  await page
-    .getByRole("combobox", { name: "Hồ sơ học sinh", exact: true })
-    .selectOption(originalStudent.id);
-  await page.getByRole("button", { name: "Đã quan tâm", exact: true }).click();
-  await expect(
-    page.getByRole("heading", { name: `Gia sư ${suffix}`, exact: true }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Bỏ quan tâm", exact: true }).click();
-  await expect(
-    page.getByRole("heading", {
-      name: "Chưa có gia sư đã quan tâm phù hợp",
-      exact: true,
-    }),
-  ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Khám phá gia sư", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "Lấy gợi ý mới", exact: true })
-    .click();
-  await expect(page.locator(".tutor-card h2")).toHaveText(`Gia sư ${suffix}`);
-  await page
-    .getByRole("button", { name: "Quan tâm gia sư", exact: true })
-    .click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await page.getByRole("button", { name: "Đóng cửa sổ", exact: true }).click();
-  await page.getByRole("button", { name: "Đã quan tâm", exact: true }).click();
-  await page
-    .getByRole("button", { name: "Gửi yêu cầu học thử", exact: true })
-    .click();
-  const proposed = new Date(Date.now() + 2 * 86400000);
-  proposed.setMinutes(proposed.getMinutes() - proposed.getTimezoneOffset());
-  await page
-    .getByLabel("Ngày và giờ đề xuất (giờ địa phương)", { exact: true })
-    .fill(proposed.toISOString().slice(0, 16));
-  await page
-    .getByLabel("Lời nhắn cho gia sư (tùy chọn)", { exact: true })
-    .fill("Xin một buổi học thử.");
-  await page
-    .getByRole("button", { name: "Gửi yêu cầu học thử →", exact: true })
-    .click();
-  await expect(
-    page.getByText("Đang chờ phản hồi", { exact: true }),
-  ).toBeVisible();
-  const pending = await (await page.request.get("/api/lessons")).json();
-  expect(pending[0].tutor_email).toBeNull();
-  expect(pending[0].tutor_id).toBe(tutorProfile.id);
-
-  await logout(page);
-  await login(page, tutorEmail);
-  await page
-    .getByRole("button", { name: "Yêu cầu học thử", exact: true })
-    .click();
-  await page.getByRole("button", { name: "Chấp nhận", exact: true }).click();
-  await expect(page.getByText("Đã kết nối", { exact: true })).toBeVisible();
-  await expect(page.getByText(parentEmail, { exact: false })).toBeVisible();
-  await logout(page);
-  await login(page, parentEmail);
-  await page.getByRole("button", { name: "Lịch học thử", exact: true }).click();
-  await expect(page.getByText(tutorEmail, { exact: false })).toBeVisible();
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= window.innerWidth,
-    ),
-  ).toBe(true);
+  await page.getByRole("combobox", { name: "Hồ sơ học sinh", exact: true }).selectOption(secondStudent.id);
+  await expect(page.getByRole("heading", { name: "Chưa có lựa chọn đang chờ hoặc Match", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Xem Match", exact: true }).click();
+  await expect(page.getByRole("combobox", { name: "Hồ sơ học sinh", exact: true })).toHaveValue(originalStudent.id);
+  await expect(page.locator(".matching-card").getByText("✓ Đã Match", { exact: true })).toBeVisible();
+  await page.screenshot({ path: `test-results/sprint4-${testInfo.project.name}.png`, fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  // Fill the tutor's remaining daily budget through the real API, then verify the disabled UI.
+  for (let i = 0; i < 9; i++) {
+    const s = await createStudent(page.request, {
+      nickname: `Hồ sơ giới hạn ${i}`, grade: 6, subjects: ["Toán"], province: "Hà Nội",
+      mode: "ONLINE", budget: 200000, availability: ["1_EVENING"], needs: "Củng cố kiến thức", survey, consent: true,
+    });
+    const csrf = await (await tutorPage.request.get("/api/auth/csrf")).json();
+    const response = await tutorPage.request.post("/api/matching/actions", {
+      data: { studentId: s.id, tutorId: tutorProfile.id, interested: true },
+      headers: { "X-XSRF-TOKEN": csrf.token },
+    });
+    expect(response.ok()).toBeTruthy();
+  }
+  await tutorPage.getByRole("button", { name: "Tìm học sinh", exact: true }).click();
+  await expect(tutorPage.getByRole("button", { name: "OK — quan tâm", exact: true })).toBeDisabled();
+  await expect(tutorPage.getByRole("button", { name: "Bỏ qua", exact: true })).toBeEnabled();
+  const capped = await (await tutorPage.request.get("/api/tutor/matching")).json();
+  expect(capped.limits.totalRemaining).toBe(0);
+  await tutorPage.reload();
+  await expect(tutorPage.getByRole("button", { name: "OK — quan tâm", exact: true })).toBeDisabled();
+  expect((await (await tutorPage.request.get("/api/tutor/matching")).json()).cards[0].studentId).toBe(capped.cards[0].studentId);
+  const skipResponse = tutorPage.waitForResponse((response) => response.url().endsWith("/api/matching/actions") && response.request().method() === "POST");
+  await tutorPage.getByRole("button", { name: "Bỏ qua", exact: true }).click();
+  expect((await skipResponse).ok()).toBeTruthy();
+  await tutorContext.close();
 
   await logout(page);
   await page.goto("/#/forgot");

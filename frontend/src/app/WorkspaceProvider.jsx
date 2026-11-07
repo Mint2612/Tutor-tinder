@@ -6,10 +6,10 @@ import { WorkspaceContext } from "./workspace-store";
 const authPages = ["login", "register", "verify", "forgot", "reset"];
 const rolePages = {
   PARENT: ["students", "discover", "interests", "lessons", "profile"],
-  TUTOR: ["profile", "lessons"],
+  TUTOR: ["profile", "discover", "interests", "lessons"],
   ADMIN: ["admin"],
 };
-const loadedPages = ["lessons", "profile", "admin", "interests"];
+const loadedPages = ["lessons", "profile", "admin"];
 
 export function WorkspaceProvider({ children }) {
   const [user, setUser] = useState(null),
@@ -199,14 +199,7 @@ export function WorkspaceProvider({ children }) {
       setUser(null);
       setPage("home");
     });
-  const discover = () =>
-    run(async () => {
-      if (!selected) throw new Error("Hãy tạo và chọn hồ sơ học sinh trước.");
-      const data = await api(`/students/${selected}/recommendations`);
-      setRecommendations(data);
-      setLoadedDiscovery(true);
-      setPage("discover");
-    });
+  const discover = () => navigate("discover");
   const swipe = (interested) =>
     run(async () => {
       const recommendation = recommendations[0];
@@ -227,13 +220,15 @@ export function WorkspaceProvider({ children }) {
       ? [
           ["students", "Hồ sơ của con"],
           ["discover", "Khám phá gia sư"],
-          ["interests", "Đã quan tâm"],
+          ["interests", "Đã OK & Match"],
           ["lessons", "Lịch học thử"],
           ["profile", "Tài khoản"],
         ]
       : user?.role === "TUTOR"
         ? [
             ["profile", "Hồ sơ của tôi"],
+            ["discover", "Tìm học sinh"],
+            ["interests", "Đã OK & Match"],
             ["lessons", "Yêu cầu học thử"],
           ]
         : [["admin", "Duyệt gia sư"]];

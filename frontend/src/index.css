@@ -1295,3 +1295,10 @@ summary {
     animation: none !important;
   }
 }
+.matching-deck { max-width: 640px; margin: 2rem auto; }
+.matching-card { touch-action: pan-y; overflow-wrap: anywhere; }
+.matching-card .verified { position: static; display: inline-block; background: #edf7ee; font-size: 11px; }
+.matching-saved { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 24px; }
+.matching-saved .swipe-area { width: 100%; }
+.matching-limits { color: var(--muted, #5b6460); line-height: 1.7; }
+.match-notifications { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 16px; margin: 16px 0; border: 1px solid #a4c7ad; border-radius: 16px; background: #edf7ee; }
