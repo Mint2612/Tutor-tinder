@@ -203,60 +203,223 @@ Then hệ thống báo thiếu mục nào và không nộp
 
 ---
 
-## US-04: Xác minh hồ sơ gia sư
+## US-04A: Gia sư nộp minh chứng xác minh danh tính
+
+| Vai trò | Ưu tiên | FR / UC liên quan |
+|---|---|---|
+| Gia sư | Must | FR-04 / UC-04 |
+
+### Feature
+Nộp minh chứng xác minh gia sư
+
+### User Story
+Là một gia sư,
+tôi muốn cung cấp minh chứng xác minh danh tính của mình,
+để Admin có thể kiểm tra và xác minh hồ sơ của tôi.
+
+### Context
+Gia sư cần được xác minh danh tính trước khi xuất hiện trong danh sách gợi ý cho phụ huynh. Gia sư cung cấp minh chứng theo quy trình xác minh thủ công của MVP. Hệ thống chỉ ghi nhận trạng thái và kết quả xác minh, không lưu ảnh giấy tờ định danh gốc (NFR-09).
+
+### Functional Requirements
+- Hệ thống phải cho gia sư gửi yêu cầu xác minh danh tính cấp 2.
+- Hệ thống phải cho gia sư cung cấp minh chứng theo quy trình xác minh được quy định.
+- Hệ thống phải kiểm tra hồ sơ gia sư có đủ thông tin bắt buộc trước khi gửi yêu cầu xác minh.
+- Hệ thống phải đặt trạng thái yêu cầu xác minh thành "Chờ duyệt" sau khi gửi thành công.
+- Hệ thống phải cho gia sư xem trạng thái xác minh hiện tại.
+- Hệ thống phải cho gia sư xem lý do từ chối nếu yêu cầu xác minh không được chấp thuận.
+- Hệ thống phải cho phép gia sư gửi lại yêu cầu xác minh sau khi bị từ chối.
+
+### Business Rules
+- Gia sư phải có ít nhất một môn dạy, một cấp lớp và thông tin xác minh cấp 1 trước khi yêu cầu xác minh cấp 2.
+- Gia sư không được tự gán huy hiệu xác minh.
+- Minh chứng định danh chỉ Admin được phép xem trong quá trình xác minh.
+- Hệ thống không lưu ảnh giấy tờ định danh gốc (NFR-09).
+- Thay đổi thông tin xác minh phải được duyệt lại.
+
+### Scenarios
+#### Scenario 1: Gửi yêu cầu xác minh thành công
+Given gia sư đã đăng nhập và có hồ sơ hợp lệ
+When gia sư gửi yêu cầu xác minh danh tính cấp 2
+Then yêu cầu được lưu với trạng thái "Chờ duyệt"
+
+#### Scenario 2: Thiếu thông tin bắt buộc
+Given gia sư chưa cung cấp đủ thông tin hồ sơ hoặc minh chứng
+When gia sư gửi yêu cầu xác minh
+Then hệ thống thông báo các thông tin còn thiếu và không tiếp nhận yêu cầu
+
+#### Scenario 3: Yêu cầu xác minh bị từ chối
+Given yêu cầu xác minh của gia sư đã bị Admin từ chối
+When gia sư xem trạng thái xác minh
+Then hệ thống hiển thị kết quả và lý do từ chối để gia sư có thể bổ sung và gửi lại
+
+### Constraints
+- Chỉ Admin được xem thông tin minh chứng định danh (NFR-09).
+- Giao diện tiếng Việt và sử dụng được trên thiết bị di động (NFR-03).
+
+### Non-Goals
+- Xác minh tự động bằng nhận diện giấy tờ.
+- Lưu trữ ảnh CCCD/CMND hoặc giấy tờ định danh gốc.
+- Kiểm tra lý lịch tư pháp.
+
+### Dependencies
+- US-01, US-03.
+
+### Acceptance Criteria
+- [ ] Gia sư gửi được yêu cầu xác minh danh tính cấp 2 khi hồ sơ đủ điều kiện.
+- [ ] Yêu cầu xác minh chuyển sang trạng thái "Chờ duyệt".
+- [ ] Gia sư xem được trạng thái và lý do từ chối.
+- [ ] Gia sư có thể gửi lại yêu cầu sau khi bị từ chối.
+- [ ] Gia sư không thể tự cấp huy hiệu xác minh.
+- [ ] Hệ thống không lưu ảnh giấy tờ định danh gốc.
+
+---
+
+## US-04B: Admin duyệt minh chứng xác minh gia sư
 
 | Vai trò | Ưu tiên | FR / UC liên quan |
 |---|---|---|
 | Admin | Must | FR-04 / UC-04 |
 
 ### Feature
-Xác minh gia sư theo cấp
+Quản lý xác minh danh tính gia sư
 
 ### User Story
 Là một Admin,
-tôi muốn duyệt hoặc từ chối hồ sơ và minh chứng của gia sư,
-để chỉ những gia sư đáng tin mới được hiển thị cho phụ huynh.
+tôi muốn xem xét và duyệt hoặc từ chối minh chứng xác minh danh tính của gia sư,
+để đảm bảo hồ sơ gia sư đáp ứng điều kiện xác minh của hệ thống.
 
 ### Context
-Gia sư tiếp xúc với trẻ em nên danh tính phải được kiểm tra. Việc xác minh theo cấp được mô tả ở README mục 5.4; MVP duyệt thủ công.
+Admin chịu trách nhiệm kiểm tra minh chứng và đưa ra quyết định xác minh thủ công. Chỉ gia sư được Admin duyệt cấp 2 mới đủ điều kiện hiển thị cho phụ huynh. Hệ thống ghi nhận kết quả xác minh và lịch sử quyết định, không lưu ảnh giấy tờ định danh gốc (NFR-09).
 
 ### Functional Requirements
-- Hệ thống phải hiển thị cho Admin danh sách hồ sơ "Chờ duyệt".
-- Hệ thống phải cho Admin xem hồ sơ và minh chứng của từng gia sư.
-- Hệ thống phải cho Admin duyệt hoặc từ chối từng cấp xác minh, từ chối phải kèm lý do.
-- Hệ thống phải gắn huy hiệu tương ứng cấp đã duyệt lên hồ sơ gia sư.
-- Hệ thống phải chỉ hiển thị gia sư đạt tối thiểu cấp 2 cho phụ huynh.
+- Hệ thống phải hiển thị danh sách hồ sơ gia sư đang ở trạng thái "Chờ duyệt".
+- Hệ thống phải cho Admin xem hồ sơ và minh chứng xác minh của gia sư.
+- Hệ thống phải cho Admin duyệt hoặc từ chối yêu cầu xác minh cấp 2.
+- Hệ thống phải yêu cầu Admin nhập lý do khi từ chối.
+- Hệ thống phải ghi nhận kết quả, thời gian và Admin thực hiện quyết định.
+- Hệ thống phải cấp huy hiệu "Đã xác minh danh tính" khi Admin duyệt cấp 2.
+- Hệ thống phải thông báo kết quả xác minh cho gia sư.
+- Hệ thống phải lưu lịch sử các quyết định xác minh.
 
 ### Business Rules
-- Cấp 2 (danh tính) bắt buộc để hiển thị; cấp 3 (học lực) tùy chọn.
-- GPA chỉ hiển thị như huy hiệu, không dùng để xếp hạng.
-- Giấy tờ được che hoặc xóa sau khi duyệt xong (NFR-09).
+- Admin phải kiểm tra minh chứng trước khi duyệt.
+- Từ chối yêu cầu xác minh bắt buộc phải có lý do.
+- Chỉ Admin có quyền thực hiện quyết định xác minh.
+- Gia sư không được tự gán hoặc chỉnh sửa huy hiệu xác minh.
+- Cấp 2 (danh tính) là điều kiện bắt buộc để gia sư được hiển thị cho phụ huynh.
+- Cấp 3 (học lực, giải thưởng) là tùy chọn.
+- Hệ thống không lưu ảnh giấy tờ định danh gốc (NFR-09).
 
 ### Scenarios
-#### Scenario 1: Duyệt hồ sơ
-Given có hồ sơ gia sư ở trạng thái "Chờ duyệt" với minh chứng hợp lệ
-When Admin duyệt cấp 2
-Then gia sư được hiển thị cho phụ huynh với huy hiệu "Đã xác minh danh tính"
+#### Scenario 1: Duyệt xác minh danh tính
+Given có yêu cầu xác minh gia sư ở trạng thái "Chờ duyệt" với minh chứng hợp lệ
+When Admin kiểm tra minh chứng và duyệt cấp 2
+Then gia sư được cấp huy hiệu "Đã xác minh danh tính" và nhận thông báo kết quả
 
-#### Scenario 2: Từ chối hồ sơ
-Given minh chứng không rõ hoặc không hợp lệ
-When Admin từ chối và nhập lý do
-Then gia sư nhận được lý do và có thể nộp lại
+#### Scenario 2: Từ chối xác minh
+Given minh chứng xác minh không rõ hoặc không hợp lệ
+When Admin từ chối yêu cầu và nhập lý do
+Then hệ thống lưu lý do từ chối và thông báo cho gia sư
+
+#### Scenario 3: Xem lịch sử quyết định
+Given Admin đã thực hiện một hoặc nhiều quyết định xác minh
+When Admin mở lịch sử xác minh của gia sư
+Then hệ thống hiển thị các quyết định xác minh đã được ghi nhận
 
 ### Constraints
-- Chỉ Admin xem được giấy tờ định danh và bảng điểm (NFR-09).
+- Chỉ Admin được xem thông tin minh chứng định danh (NFR-09).
+- Giao diện tiếng Việt và sử dụng được trên thiết bị di động (NFR-03).
 
 ### Non-Goals
-- Xác minh tự động; kiểm tra lý lịch tư pháp.
+- Xác minh tự động bằng AI hoặc nhận diện giấy tờ.
+- Kiểm tra lý lịch tư pháp.
+- Tự động đánh giá học lực hoặc năng lực giảng dạy.
 
 ### Dependencies
-- US-01, US-03.
+- US-01, US-03, US-04A.
 
 ### Acceptance Criteria
-- [ ] Gia sư chưa đạt cấp 2 không xuất hiện với phụ huynh.
-- [ ] Từ chối bắt buộc có lý do.
-- [ ] Huy hiệu hiển thị đúng với cấp đã duyệt.
-- [ ] Giấy tờ chỉ Admin xem được.
+- [ ] Admin xem được danh sách yêu cầu xác minh đang chờ duyệt.
+- [ ] Admin xem được hồ sơ và minh chứng của gia sư.
+- [ ] Admin duyệt được yêu cầu xác minh cấp 2.
+- [ ] Admin từ chối được yêu cầu và bắt buộc nhập lý do.
+- [ ] Kết quả xác minh được lưu và thông báo cho gia sư.
+- [ ] Huy hiệu xác minh được cấp đúng cấp đã duyệt.
+- [ ] Lịch sử quyết định xác minh được lưu.
+- [ ] Chỉ Admin được xem thông tin minh chứng định danh.
+
+---
+
+## US-04C: Phụ huynh xem gia sư đã xác minh danh tính
+
+| Vai trò | Ưu tiên | FR / UC liên quan |
+|---|---|---|
+| Phụ huynh | Must | FR-04 / UC-04 |
+
+### Feature
+Hiển thị gia sư đủ điều kiện xác minh
+
+### User Story
+Là một phụ huynh,
+tôi muốn chỉ xem những gia sư đã được xác minh danh tính cấp 2 trở lên,
+để tăng độ tin cậy khi lựa chọn gia sư cho con.
+
+### Context
+Phụ huynh cần lựa chọn gia sư có danh tính được xác minh để đảm bảo độ tin cậy. Hệ thống chỉ hiển thị gia sư đã được Admin duyệt xác minh cấp 2 trở lên, có hồ sơ hợp lệ và đang bật hiển thị. Huy hiệu xác minh giúp phụ huynh nhận biết mức độ xác minh của gia sư.
+
+### Functional Requirements
+- Hệ thống phải chỉ hiển thị gia sư đã được Admin duyệt xác minh cấp 2 trở lên trong danh sách gợi ý.
+- Hệ thống phải chỉ hiển thị gia sư đã kích hoạt tài khoản và đang bật hiển thị.
+- Hệ thống phải hiển thị huy hiệu xác minh tương ứng trên hồ sơ gia sư.
+- Hệ thống phải loại bỏ gia sư chưa được duyệt, bị từ chối hoặc bị ẩn khỏi danh sách gợi ý.
+- Hệ thống phải cập nhật danh sách gợi ý khi trạng thái xác minh của gia sư thay đổi.
+
+### Business Rules
+- Cấp 2 (danh tính) là điều kiện bắt buộc để gia sư được hiển thị.
+- Cấp 3 (học lực, giải thưởng) là tùy chọn.
+- Chỉ gia sư đã được Admin duyệt mới được cấp huy hiệu xác minh.
+- Gia sư bị ẩn hoặc không còn đạt điều kiện xác minh không được xuất hiện trong danh sách phụ huynh.
+- Huy hiệu xác minh không được dùng để khẳng định năng lực giảng dạy của gia sư.
+
+### Scenarios
+#### Scenario 1: Hiển thị gia sư đã xác minh
+Given gia sư đã được Admin duyệt xác minh cấp 2 và đang bật hiển thị
+When phụ huynh mở danh sách gợi ý gia sư
+Then gia sư xuất hiện trong danh sách với huy hiệu "Đã xác minh danh tính"
+
+#### Scenario 2: Gia sư chưa đạt cấp 2
+Given gia sư chưa được Admin duyệt xác minh cấp 2
+When phụ huynh mở danh sách gợi ý gia sư
+Then gia sư không xuất hiện trong danh sách
+
+#### Scenario 3: Gia sư bị ẩn
+Given gia sư đã được xác minh nhưng đang tắt hiển thị
+When phụ huynh mở danh sách gợi ý gia sư
+Then gia sư không xuất hiện trong danh sách
+
+#### Scenario 4: Thu hồi hoặc thay đổi trạng thái xác minh
+Given gia sư không còn đáp ứng điều kiện xác minh
+When hệ thống cập nhật trạng thái xác minh của gia sư
+Then gia sư bị loại khỏi danh sách gợi ý của phụ huynh
+
+### Constraints
+- Giao diện tiếng Việt và sử dụng được trên thiết bị di động (NFR-03).
+- Thông tin giấy tờ định danh gốc không được hiển thị cho phụ huynh (NFR-09).
+
+### Non-Goals
+- Phụ huynh trực tiếp xác minh danh tính gia sư.
+- Hiển thị giấy tờ định danh gốc.
+- Đánh giá hoặc xếp hạng năng lực giảng dạy dựa trên huy hiệu xác minh.
+
+### Dependencies
+- US-01, US-03, US-04A, US-04B.
+
+### Acceptance Criteria
+- [ ] Phụ huynh chỉ thấy gia sư đã được Admin duyệt xác minh cấp 2 trở lên.
+- [ ] Gia sư chưa được duyệt hoặc bị ẩn không xuất hiện trong danh sách gợi ý.
+- [ ] Huy hiệu xác minh hiển thị đúng với cấp đã duyệt.
+- [ ] Danh sách gợi ý được cập nhật khi trạng thái xác minh thay đổi.
+- [ ] Phụ huynh không thể xem giấy tờ định danh gốc của gia sư.
 
 ---
 
