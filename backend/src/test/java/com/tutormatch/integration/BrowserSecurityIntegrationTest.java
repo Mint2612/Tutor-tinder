@@ -1,6 +1,7 @@
 package com.tutormatch.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -62,9 +63,19 @@ class BrowserSecurityIntegrationTest {
                     .content(credentials))
             .andExpect(status().isOk())
             .andExpect(cookie().httpOnly("TM_SESSION", true))
+            .andExpect(cookie().maxAge("TM_SESSION", 28800))
+            .andExpect(header().string("Set-Cookie", containsString("SameSite=Lax")))
             .andReturn();
     var session = login.getResponse().getCookie("TM_SESSION");
     assertNotNull(session);
+    assertFalse(login.getResponse().getContentAsString().contains(session.getValue()));
+    assertEquals(
+        1,
+        db.queryForObject(
+            "SELECT COUNT(*) FROM auth_sessions WHERE token_hash=? AND user_id=?",
+            Integer.class,
+            Tokens.hash(session.getValue()),
+            id));
     mvc.perform(get("/api/auth/me").cookie(session)).andExpect(status().isOk());
     mvc.perform(post("/api/auth/logout").cookie(cookie, session).header("X-XSRF-TOKEN", token))
         .andExpect(status().isOk());
@@ -75,5 +86,37 @@ class BrowserSecurityIntegrationTest {
             "SELECT COUNT(*) FROM auth_sessions WHERE token_hash=?",
             Integer.class,
             Tokens.hash(session.getValue())));
+  }
+
+  @Test
+  void expiredSessionCanLogoutAndClearCookieWhileCsrfRemainsRequired() throws Exception {
+    String id = UUID.randomUUID().toString();
+    String rawToken = "expired-session-" + UUID.randomUUID();
+    db.update(
+        "INSERT INTO users(id,email,full_name,role,email_verified) VALUES(?,?,?,'PARENT',TRUE)",
+        id,
+        id + "@example.test",
+        "Expired session fixture");
+    db.update(
+        "INSERT INTO auth_sessions(token_hash,user_id,expires_at) VALUES(?,?,TIMESTAMPADD(SECOND,-1,CURRENT_TIMESTAMP))",
+        Tokens.hash(rawToken),
+        id);
+    var session = new jakarta.servlet.http.Cookie("TM_SESSION", rawToken);
+    mvc.perform(get("/api/auth/me").cookie(session)).andExpect(status().isUnauthorized());
+    mvc.perform(post("/api/auth/logout").cookie(session)).andExpect(status().isForbidden());
+
+    var csrf = mvc.perform(get("/api/auth/csrf")).andExpect(status().isOk()).andReturn();
+    var cookie = csrf.getResponse().getCookie("XSRF-TOKEN");
+    assertNotNull(cookie);
+    String token = JsonMapper.builder().build()
+        .readTree(csrf.getResponse().getContentAsString()).path("token").asText();
+    mvc.perform(post("/api/auth/logout").cookie(session, cookie).header("X-XSRF-TOKEN", token))
+        .andExpect(status().isOk())
+        .andExpect(cookie().httpOnly("TM_SESSION", true))
+        .andExpect(cookie().maxAge("TM_SESSION", 0));
+    assertEquals(0, db.queryForObject(
+        "SELECT COUNT(*) FROM auth_sessions WHERE token_hash=?", Integer.class, Tokens.hash(rawToken)));
+    mvc.perform(post("/api/auth/logout").cookie(cookie).header("X-XSRF-TOKEN", token))
+        .andExpect(status().isOk()).andExpect(cookie().maxAge("TM_SESSION", 0));
   }
 }

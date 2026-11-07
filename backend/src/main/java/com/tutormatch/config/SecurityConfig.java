@@ -7,6 +7,7 @@ import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.util.*;
 import org.springframework.context.annotation.*;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -42,7 +43,9 @@ public class SecurityConfig {
         .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             a ->
-                a.requestMatchers(
+                a.requestMatchers(HttpMethod.POST, "/api/auth/logout")
+                    .permitAll()
+                    .requestMatchers(
                         "/api/health",
                         "/actuator/health",
                         "/api/auth/csrf",
