@@ -41,7 +41,7 @@ npm run test:e2e
 
 Test endpoints: app http://127.0.0.1:33000, backend http://127.0.0.1:38080, Mailpit http://127.0.0.1:38025. Tests create unique fictional parent/tutor accounts and consume their actual SMTP emails from the local inbox. The test-only admin is defined in `compose.e2e.yaml`; do not use that override for application hosting.
 
-The browser workflow verifies registration/email-link activation, tutor form/evidence upload, admin evidence access before approval, parent survey/consent, discovery, saved interests across refresh, trial requests and acceptance, contact gating, switching between students with different subjects, password-reset email links and sign-in with the changed password. A separate scenario checks anonymous role-route protection and recovery from a failed network request. It runs on Chromium desktop and a 360px mobile/touch configuration. These are emulated device checks, not proof of every physical device or browser.
+The current browser workflow verifies registration/email-link activation, tutor form/evidence upload and renewed approval, parent survey/consent, two-way anonymous discovery, swipe/buttons, incoming tags, mutual Match and notifications, saved choices across refresh, per-student isolation, exhausted quota with Skip still enabled, password-reset email links and sign-in with the changed password. Existing trial/contact logic remains covered by backend regression tests; it is outside the new Sprint 4 UI workflow. A separate scenario checks anonymous role-route protection and recovery from a failed network request. It runs on Chromium desktop and a 360px mobile/touch configuration. These are emulated device checks, not proof of every physical device or browser.
 
 The suite retains screenshots only on failure. Network traces are disabled because verification/reset emails contain single-use secrets. Generated artifacts are ignored by Git.
 
@@ -109,3 +109,13 @@ Manual Sprint 3 review:
 5. Parent/another tutor: accessing `/api/admin/documents/{id}` must return 403; anonymous access must return 401. Evidence remains in a private storage bucket.
 
 Saving a profile, including saving unchanged form values, conservatively requires reapproval for an approved/pending profile. Rejected profiles retain the rejection reason until resubmission. Old audit rows have unknown submission/revision and are not backfilled. Team review checkboxes remain pending in the sprint sheet.
+
+## Latest Sprint 4 verification — 2026-11-07
+
+66 backend tests passed (including 10 two-way matching integration tests). Six Playwright cases passed across desktop Chromium and Pixel 7 emulation at 360px, with actual local SMTP and object storage. Frontend lint/build passed. See [Sprint 4 scope, migration, API and verification details](sprint4-matching.md). Repeat browser workflows against a clean tmpfs test DB to avoid cumulative registration throttles from prior runs. Formal Product Owner review remains separate from these technical results.
+
+### After pulling upstream `3a7e3df` — 2026-11-07
+
+The local Sprint 4 changes were reapplied and the browser-test conflict resolved while preserving the new legal-name privacy assertion. Matching moves to migration V6 to keep upstream V5 intact. Fresh isolated MariaDB verification passed **79 backend tests**, including the matching tests and the newly added contact/province/name tests. Frontend lint and production build also passed.
+
+Final merged delivery: **all six browser tests reran and passed** on desktop/mobile against this merged source, including the legal-name privacy assertion and current province/time-range controls. The local application database was backed up, its earlier matching migration aligned to V6, and upstream V5 applied successfully. The final app was then restarted using ordinary Compose with no temporary migration override. Parent/tutor/admin logins, the 23-profile sample parent, approved sample tutor, anonymous matching feeds and the new private legal-name field were checked on `localhost:3000`. Protected table row counts and fingerprints matched the pre-upgrade backup; no accounts, student profiles, choices, quota counters, notifications or Match records were lost. See [migration upgrade details](migrations.md#local-upgrade-from-the-pre-pull-sprint-4-build).

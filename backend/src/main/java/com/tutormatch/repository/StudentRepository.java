@@ -5,6 +5,7 @@ import static com.tutormatch.mapper.JsonFields.json;
 import com.tutormatch.dto.profile.StudentRequest;
 import com.tutormatch.mapper.StudentMapper;
 import com.tutormatch.model.StudentProfile;
+import com.tutormatch.model.TutorProfile;
 import java.util.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -46,6 +47,27 @@ public class StudentRepository {
         .stream()
         .map(this::hydrate)
         .toList();
+  }
+
+  public Optional<StudentProfile> findById(String id) {
+    return db.queryForList("SELECT * FROM student_profiles WHERE id=?", id).stream()
+        .findFirst().map(this::hydrate);
+  }
+
+  public List<StudentProfile> candidates(TutorProfile tutor) {
+    var named = new org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate(db);
+    var rows = named.queryForList("SELECT s.* FROM student_profiles s JOIN users u ON u.id=s.parent_id "
+        + "WHERE u.email_verified=TRUE AND s.grade IN (:grades) AND s.mode IN (:modes) "
+        + "AND s.max_hourly_rate>=:rate AND (s.mode='ONLINE' OR LOWER(s.province)=LOWER(:province)) "
+        + "AND NOT EXISTS(SELECT 1 FROM student_subjects ss WHERE ss.student_id=s.id AND ss.subject NOT IN (:subjects)) ORDER BY s.id",
+        Map.of("grades",tutor.grades(),"modes",tutor.modes(),"rate",tutor.hourlyRate(),
+            "province",tutor.province(),"subjects",tutor.subjects()));
+    if (rows.isEmpty()) return List.of();
+    var subjects = new HashMap<String,List<String>>();
+    named.queryForList("SELECT student_id,subject FROM student_subjects WHERE student_id IN (:ids) ORDER BY subject",
+        Map.of("ids",rows.stream().map(r -> r.get("id").toString()).toList()))
+        .forEach(r -> subjects.computeIfAbsent(r.get("student_id").toString(), key -> new ArrayList<>()).add(r.get("subject").toString()));
+    return rows.stream().map(r -> mapper.fromRow(r,subjects.getOrDefault(r.get("id").toString(),List.of()))).toList();
   }
 
   private StudentProfile hydrate(Map<String, Object> row) {

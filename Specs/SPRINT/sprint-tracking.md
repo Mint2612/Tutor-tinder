@@ -9,7 +9,7 @@
 | Sprint 1 | Phụ huynh và gia sư có thể đăng ký, xác thực, đăng nhập và khôi phục tài khoản đúng vai trò. | ☐ Yes ☐ No | 4 / 4 |
 | Sprint 2 | Phụ huynh lưu được hồ sơ và nhu cầu học của con; gia sư hoàn thiện được hồ sơ giảng dạy. | ☐ Yes ☐ No | 3 / 3 |
 | Sprint 3 | Admin xác minh được gia sư; chỉ hồ sơ được duyệt mới có thể xuất hiện với phụ huynh. | ☐ Yes ☐ No | 3 / 3 |
-| Sprint 4 | Phụ huynh tìm được gia sư phù hợp, xem chi tiết và lưu lựa chọn thích/bỏ qua. | ☐ Yes ☐ No | 3 / 3 |
+| Sprint 4 | Phụ huynh và gia sư nhận thẻ phù hợp hai chiều, chọn OK/Bỏ qua và tạo Match khi cùng quan tâm. | ☐ Yes ☐ No | 3 / 3 |
 | Sprint 5 | Phụ huynh gửi được yêu cầu học thử; gia sư phản hồi và hai bên thấy liên hệ sau khi chấp nhận. | ☐ Yes ☐ No | 4 / 4 |
 | Sprint 6 | Người dùng hoàn thành được luồng tìm gia sư đến học thử ổn định trên trình duyệt máy tính và điện thoại. | ☐ Yes ☐ No | 2 / 2 |
 | **Tổng** | **19 stories cam kết đề xuất** | | **19 / 19** |
@@ -51,6 +51,9 @@ Các US của Sprint 3: [US-03](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIE
 - [ ] **S4-02 — Thẻ sơ lược và tag:** Mỗi bên muốn xem nhanh thông tin sơ lược của thẻ và biết thẻ do hệ thống đề xuất hay do bên kia quan tâm. **Done:** thẻ gia sư hiển thị môn, huy hiệu xác minh, kinh nghiệm tóm tắt, học phí, khu vực; thẻ học sinh cho gia sư chủ yếu là thông tin học sinh, không có tên, trường, địa chỉ, ảnh hay liên hệ phụ huynh; thẻ có tag "Đề xuất" hoặc "Quan tâm bạn" (chữ kèm icon).
 - [ ] **S4-03 — OK/Bỏ qua và Match:** Mỗi bên muốn chủ động chọn và chỉ kết nối khi cả hai cùng quan tâm. **Done:** thao tác được bằng vuốt và nút tương đương; lựa chọn lưu ở backend; OK của một bên đưa thẻ lên đầu danh sách bên kia với tag "Quan tâm bạn"; cả hai OK thì tạo Match và thông báo; Bỏ qua ẩn cặp khỏi cả hai danh sách mà không báo lý do; giới hạn x = 3 lượt OK vào thẻ "Quan tâm bạn" và 10 lượt OK tổng mỗi ngày mỗi hồ sơ, hết giới hạn thì khóa OK nhưng giữ thẻ; thẻ "Quan tâm bạn" hết hạn sau 7 ngày; tải lại kiểm tra được.
 
+
+**Cập nhật kỹ thuật 07/11/2026:** Đã triển khai S4-01/S4-02/S4-03 và xác minh 3/3 bằng 79 kiểm thử backend, 6 kiểm thử trình duyệt desktop/mobile, lint và build frontend. Chi tiết tại [bằng chứng Sprint 4](../../docs/sprint4-matching.md). Checkbox nghiệm thu và Goal achieved vẫn để team chốt ở Sprint Review; chưa ghi nhận thay Product Owner.
+
 Các US của Sprint 4: [US-05](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIES.md#us-05-gợi-ý-gia-sư-dạng-thẻ-kèm-mức-phù-hợp-lấy-cảm-hứng-cách-matching-tinder), [US-06](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIES.md#us-06-xem-hồ-sơ-chi-tiết-gia-sư).
 
 ### Sprint 5 — Kết nối và học thử: tối đa 4 stories
@@ -81,7 +84,7 @@ Các US của Sprint 4: [US-05](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIE
 | Sprint 1 | | | |
 | Sprint 2 | | | |
 | Sprint 3 | | | |
-| Sprint 4 | | | |
+| Sprint 4 | Nhiều OK đồng thời có thể tranh khóa bộ đếm. | Đã dùng upsert lấy khóa độc quyền và thêm kiểm thử đồng thời cho cả hai vai trò. | Nhóm phát triển |
 | Sprint 5 | | | |
 | Sprint 6 | | | |
 

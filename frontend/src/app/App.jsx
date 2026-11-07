@@ -9,8 +9,8 @@ import { TrialForm } from "../features/lessons/TrialForm";
 import { AdminReview } from "../features/admin/AdminReview";
 import { HomePage } from "../pages/HomePage";
 import { StudentsPage } from "../pages/StudentsPage";
-import { DiscoveryPage } from "../pages/DiscoveryPage";
-import { InterestsPage } from "../pages/InterestsPage";
+import { MatchingPage } from "../pages/MatchingPage";
+import { MatchNotifications } from "../features/discovery/MatchNotifications";
 import { LessonsPage } from "../pages/LessonsPage";
 import { ProfilePage } from "../pages/ProfilePage";
 import { AdminPage } from "../pages/AdminPage";
@@ -109,6 +109,7 @@ function Workspace() {
       <main className="container" aria-busy={busy}>
         <div role="alert">{error && <div className="error">{error}</div>}</div>
         <Notice>{notification}</Notice>
+        {user && ["PARENT", "TUTOR"].includes(user.role) && <MatchNotifications key={user.id} />}
         {busy && (
           <div className="progress" role="status">
             Đang xử lý…
@@ -132,8 +133,8 @@ function Workspace() {
           />
         )}
         {user && page === "students" && <StudentsPage />}
-        {user && page === "discover" && <DiscoveryPage />}
-        {user && page === "interests" && <InterestsPage />}
+        {user && page === "discover" && <MatchingPage key={`discover:${user.id}:${selected}`} />}
+        {user && page === "interests" && <MatchingPage key={`interests:${user.id}:${selected}`} saved />}
         {user && page === "lessons" && <LessonsPage />}
         {user && page === "profile" && <ProfilePage />}
         {user && page === "admin" && <AdminPage />}

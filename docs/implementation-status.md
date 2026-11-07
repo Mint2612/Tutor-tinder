@@ -12,8 +12,8 @@ The source has been reorganized into explicit backend layers and frontend screen
 | Students | Multiple owned profiles, consent timestamps, six-question survey, needs, subjects, grade, format, province, budget and weekly availability. Switching students clears recommendations, saved interests and open tutor/trial context. |
 | Tutors | Full teaching-profile editor; edits reset approval/current submission. Subject/grade/mode relations are hydrated in batches. |
 | Verification | Private bounded evidence upload/deletion, submission, current-submission evidence access before admin approval, rejection reasons, visibility control and decision history in the admin UI. |
-| Discovery | Strict eligibility, deterministic ranking, qualitative explanations, pointer mouse/touch swipes and equivalent buttons, public profile details and loading/empty/error states. |
-| Saved interests | Parents reopen liked tutors after refresh, remove interests and send trial requests later. Ownership and current eligibility/visibility are reapplied. |
+| Discovery | Two-way rules-ranked preview cards for each student and approved visible tutor; anonymous student DTOs, incoming-interest priority, pointer swipes/buttons and loading/empty/error states. |
+| Matching | Durable decisions per student/tutor pair, mutual Match, persistent notices for both accounts, seven-day interest expiry, atomic 3 incoming / 10 total OK daily quotas per profile (Vietnam time), idempotent retries and saved OK/Match views. Legacy swipe writes use the same rules. See [Sprint 4 verification](sprint4-matching.md). |
 | Trials (retained existing workflow; outside current scope) | Proposed time/message, unique pending pair, tutor acceptance/rejection, lazy expiration and contact disclosure only after acceptance. Status pages refresh through REST. |
 | Frontend | App/provider, reusable hooks, hash/email routing, pages, feature components and shared UI/API modules. Action locking, abortable page loads, session-expiry handling, form validation and accessible native dialogs. |
 | Local integrations | Mailpit SMTP inbox in Compose. Existing AI adapter retained but disabled; experimental AI additions and setup helper removed. |
@@ -45,3 +45,7 @@ Commands and scope are documented in [verification.md](verification.md). Browser
 - Identity verification remains manual; malware scanning, OCR and fraud detection are not included. Public hosting requires HTTPS/secure cookies, private database access and appropriate backup/evidence retention configuration. No public deployment was performed.
 - Legacy V1 trial/review records are not converted automatically. Expired authentication rows still need operational cleanup; SMTP delivery is synchronous rather than an outbox workflow.
 - Existing application data and manually provisioned local accounts were retained. Browser fixtures live in their separate temporary Compose project; no fictional approved tutors were seeded into the application database.
+
+## Sprint 4 — two-way matching
+
+Implemented against the updated product tracking sheet under `Specs/SPRINT`: 79 backend tests and 6 desktop/mobile browser tests passed on the final merged source. Migration V6 preserves old one-sided decisions without fabricating matches. New matching endpoints use rules only. Post-Match detail/connection confirmation and the revised trial workflow remain Sprint 5; old detail/lesson APIs have not yet been migrated to those rules. See [scope and evidence](sprint4-matching.md).
