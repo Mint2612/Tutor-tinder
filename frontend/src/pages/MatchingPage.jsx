@@ -5,7 +5,7 @@ import { PageHeading, Empty, StudentPicker } from "../components/shared";
 import { MatchingCard } from "../features/discovery/MatchingCard";
 
 export function MatchingPage({ saved = false }) {
-  const { user, students, selected, setSelected, busy, run, setNotification } = useWorkspace();
+  const { user, students, selected, setSelected, busy, run, setNotification, navigate } = useWorkspace();
   const [refresh, setRefresh] = useState(0);
   const [snapshot, setSnapshot] = useState(null);
   const parent = user.role === "PARENT";
@@ -47,6 +47,7 @@ export function MatchingPage({ saved = false }) {
     {loading && <p role="status">Đang tải danh sách phù hợp…</p>}
     {error && <div className="error" role="alert">{error} <button onClick={() => setRefresh((n) => n + 1)}>Thử lại</button></div>}
     {feed && <>
+      {feed.paused && <div className="notice" role="status">Hồ sơ đang tạm ẩn. Đề xuất mới được tạm dừng; Match đã có vẫn được giữ. <button className="secondary" onClick={() => navigate(parent ? "students" : "profile")}>Quản lý hiển thị</button></div>}
       <p className="matching-limits">Còn {feed.limits.totalRemaining}/10 lượt OK hôm nay · {feed.limits.incomingRemaining}/3 lượt OK vào thẻ “Quan tâm bạn”. Mỗi hồ sơ có giới hạn riêng; đặt lại lúc 00:00 giờ Việt Nam.</p>
       {!cards?.length && <Empty title={saved ? "Chưa có lựa chọn đang chờ hoặc Match" : "Chưa có hồ sơ phù hợp"}
         text={saved ? "Lựa chọn OK được lưu tại đây và giữ qua lần tải lại. Cặp bị bỏ qua hoặc hết hạn sẽ đóng." : "Danh sách chỉ gồm hồ sơ đáp ứng môn, lớp, hình thức, lịch và ngân sách. Khi học trực tiếp, hai bên cần cùng tỉnh. Bạn có thể cập nhật hồ sơ hoặc quay lại sau."} />}

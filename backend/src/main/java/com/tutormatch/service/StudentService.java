@@ -42,6 +42,7 @@ public class StudentService {
 
   @Transactional
   public StudentProfile save(String id, String parent, StudentRequest s) {
+    require(students.lockActiveParent(parent),404,"Tài khoản phụ huynh không còn hoạt động.");
     require(s.consent(), 400, "Cần sự đồng ý của phụ huynh trước khi lưu thông tin học sinh");
     require(SUBJECTS.containsAll(s.subjects()), 400, "Môn học không hợp lệ");
     province(s.province());

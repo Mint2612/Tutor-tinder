@@ -119,3 +119,19 @@ Saving a profile, including saving unchanged form values, conservatively require
 The local Sprint 4 changes were reapplied and the browser-test conflict resolved while preserving the new legal-name privacy assertion. Matching moves to migration V6 to keep upstream V5 intact. Fresh isolated MariaDB verification passed **79 backend tests**, including the matching tests and the newly added contact/province/name tests. Frontend lint and production build also passed.
 
 Final merged delivery: **all six browser tests reran and passed** on desktop/mobile against this merged source, including the legal-name privacy assertion and current province/time-range controls. The local application database was backed up, its earlier matching migration aligned to V6, and upstream V5 applied successfully. The final app was then restarted using ordinary Compose with no temporary migration override. Parent/tutor/admin logins, the 23-profile sample parent, approved sample tutor, anonymous matching feeds and the new private legal-name field were checked on `localhost:3000`. Protected table row counts and fingerprints matched the pre-upgrade backup; no accounts, student profiles, choices, quota counters, notifications or Match records were lost. See [migration upgrade details](migrations.md#local-upgrade-from-the-pre-pull-sprint-4-build).
+
+## Profile/account management — 2026-11-07
+
+**87 backend tests passed**, including 8 new profile-management integration tests and the existing
+matching/auth/privacy suite. **Six desktop/mobile Playwright cases passed** with the main workflow
+expanded to exercise tutor pause/restore, persisted visibility, student editing/hiding/deletion,
+confirmation cancellation, incorrect-password handling, teaching-profile deletion and account
+deletion for both roles. Deletion cases use only isolated test accounts/database/object storage.
+Frontend lint and production build passed.
+
+The local application was backed up before migration V7 and rebuilt/restarted with default Compose.
+Comparison of every pre-existing field/row in 15 protected tables passed after migration, including
+user/student/tutor profiles, documents, pair decisions, quotas, notices and lesson history. Read-only
+visual smoke checks on the main app verified the new controls and confirmation dialogs at desktop
+and 360px mobile widths; the smoke script canceled deletion and did not alter existing sample data.
+See [profile/account management](profile-management.md).

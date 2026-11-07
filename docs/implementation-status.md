@@ -49,3 +49,14 @@ Commands and scope are documented in [verification.md](verification.md). Browser
 ## Sprint 4 — two-way matching
 
 Implemented against the updated product tracking sheet under `Specs/SPRINT`: 79 backend tests and 6 desktop/mobile browser tests passed on the final merged source. Migration V6 preserves old one-sided decisions without fabricating matches. New matching endpoints use rules only. Post-Match detail/connection confirmation and the revised trial workflow remain Sprint 5; old detail/lesson APIs have not yet been migrated to those rules. See [scope and evidence](sprint4-matching.md).
+
+## Profile/account lifecycle
+
+Added per-student hide/restore/delete, independent tutor pause/restore, teaching-profile deletion
+and self-service account deletion for parent/tutor roles. Admin visibility/approval cannot be
+overridden by a tutor. Temporarily hiding keeps existing compatible Matches, while deletion
+closes related pairs, removes identifying information/files, permanently revokes historical
+lesson contact sharing and revokes all account sessions/challenges. Recreating a teaching profile
+keeps its original ID/quota and requires a fresh review. Migration V7 preserves existing profiles
+and decisions by default. Final verification: 87 backend tests, 6 expanded desktop/mobile browser
+cases, lint/build and main-app visual smoke passed. See [details](profile-management.md).

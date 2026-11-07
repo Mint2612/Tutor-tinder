@@ -20,27 +20,27 @@ public class AuthRepository {
   }
 
   public Optional<UserCredentials> findByEmail(String email) {
-    return db.queryForList("SELECT * FROM users WHERE email=?", email).stream()
+    return db.queryForList("SELECT * FROM users WHERE email=? AND deleted_at IS NULL", email).stream()
         .findFirst()
         .map(mapper::credentials);
   }
 
   public Optional<UserCredentials> lockByEmail(String email) {
-    return db.queryForList("SELECT * FROM users WHERE email=? FOR UPDATE", email).stream()
+    return db.queryForList("SELECT * FROM users WHERE email=? AND deleted_at IS NULL FOR UPDATE", email).stream()
         .findFirst()
         .map(mapper::credentials);
   }
 
   public Optional<com.tutormatch.dto.auth.AccountProfile> profile(String id) {
-    return db.queryForList("SELECT id,email,full_name,role,phone FROM users WHERE id=?", id).stream()
+    return db.queryForList("SELECT id,email,full_name,role,phone FROM users WHERE id=? AND deleted_at IS NULL", id).stream()
         .findFirst()
         .map(mapper::profile);
   }
 
   public void updateProfile(String id, String name, String phone) {
-    db.update("UPDATE users SET full_name=?,phone=? WHERE id=?", name, phone, id);
+    db.update("UPDATE users SET full_name=?,phone=? WHERE id=? AND deleted_at IS NULL", name, phone, id);
     // A tutor's public name is the account's display name: keep the profile in step with it.
-    db.update("UPDATE tutor_profiles SET display_name=? WHERE user_id=?", name, id);
+    db.update("UPDATE tutor_profiles t JOIN users u ON u.id=t.user_id SET t.display_name=? WHERE t.user_id=? AND t.deleted_at IS NULL AND u.deleted_at IS NULL", name, id);
   }
 
   public void create(
@@ -100,7 +100,7 @@ public class AuthRepository {
   }
 
   public void verifyEmail(String user) {
-    db.update("UPDATE users SET email_verified=TRUE WHERE id=?", user);
+    db.update("UPDATE users SET email_verified=TRUE WHERE id=? AND deleted_at IS NULL", user);
   }
 
   public void deleteChallenge(String id) {
@@ -108,7 +108,7 @@ public class AuthRepository {
   }
 
   public void changePassword(String user, String password) {
-    db.update("UPDATE users SET password_hash=? WHERE id=?", password, user);
+    db.update("UPDATE users SET password_hash=? WHERE id=? AND deleted_at IS NULL", password, user);
     db.update("DELETE FROM auth_sessions WHERE user_id=?", user);
     db.update("DELETE FROM auth_challenges WHERE user_id=?", user);
   }
@@ -130,7 +130,7 @@ public class AuthRepository {
         .queryForList(
             "SELECT u.id,u.email,u.full_name,u.role FROM auth_sessions s JOIN users u ON"
                 + " u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>CURRENT_TIMESTAMP AND"
-                + " u.email_verified=TRUE",
+                + " u.email_verified=TRUE AND u.deleted_at IS NULL",
             hash)
         .stream()
         .findFirst()

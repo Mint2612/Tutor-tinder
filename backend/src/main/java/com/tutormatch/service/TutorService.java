@@ -69,7 +69,8 @@ public class TutorService {
     availability(t.availability());
     // t.photoUrl() is accepted for compatibility but ignored: the photo is uploaded through
     // AvatarService, so a profile save can neither set an arbitrary external image nor wipe it.
-    var old = tutors.lockByUser(user);
+    require(tutors.lockActiveOwner(user),404,"Tài khoản gia sư không còn hoạt động.");
+    var old = tutors.lockForSave(user);
     String id = old.map(TutorProfile::id).orElseGet(() -> UUID.randomUUID().toString());
     tutors.save(id, user, t, old.isEmpty());
     return own(user);

@@ -24,6 +24,10 @@ public class StudentRepository {
     return findOwned(id, parent, false);
   }
 
+  public boolean lockActiveParent(String parent) {
+    return !db.queryForList("SELECT id FROM users WHERE id=? AND role='PARENT' AND deleted_at IS NULL FOR UPDATE",parent).isEmpty();
+  }
+
   public Optional<StudentProfile> lockOwned(String id, String parent) {
     return findOwned(id, parent, true);
   }
@@ -31,7 +35,7 @@ public class StudentRepository {
   private Optional<StudentProfile> findOwned(String id, String parent, boolean lock) {
     return db
         .queryForList(
-            "SELECT * FROM student_profiles WHERE id=? AND parent_id=?"
+            "SELECT * FROM student_profiles WHERE id=? AND parent_id=? AND deleted_at IS NULL"
                 + (lock ? " FOR UPDATE" : ""),
             id,
             parent)
@@ -43,21 +47,26 @@ public class StudentRepository {
   public List<StudentProfile> findByParent(String parent) {
     return db
         .queryForList(
-            "SELECT * FROM student_profiles WHERE parent_id=? ORDER BY nickname,id", parent)
+            "SELECT * FROM student_profiles WHERE parent_id=? AND deleted_at IS NULL ORDER BY nickname,id", parent)
         .stream()
         .map(this::hydrate)
         .toList();
   }
 
   public Optional<StudentProfile> findById(String id) {
-    return db.queryForList("SELECT * FROM student_profiles WHERE id=?", id).stream()
+    return db.queryForList("SELECT * FROM student_profiles WHERE id=? AND deleted_at IS NULL", id).stream()
         .findFirst().map(this::hydrate);
+  }
+
+  public Optional<StudentProfile> lockById(String id) {
+    return db.queryForList("SELECT * FROM student_profiles WHERE id=? AND deleted_at IS NULL FOR UPDATE",id)
+        .stream().findFirst().map(this::hydrate);
   }
 
   public List<StudentProfile> candidates(TutorProfile tutor) {
     var named = new org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate(db);
     var rows = named.queryForList("SELECT s.* FROM student_profiles s JOIN users u ON u.id=s.parent_id "
-        + "WHERE u.email_verified=TRUE AND s.grade IN (:grades) AND s.mode IN (:modes) "
+        + "WHERE u.email_verified=TRUE AND u.deleted_at IS NULL AND s.deleted_at IS NULL AND s.grade IN (:grades) AND s.mode IN (:modes) "
         + "AND s.max_hourly_rate>=:rate AND (s.mode='ONLINE' OR LOWER(s.province)=LOWER(:province)) "
         + "AND NOT EXISTS(SELECT 1 FROM student_subjects ss WHERE ss.student_id=s.id AND ss.subject NOT IN (:subjects)) ORDER BY s.id",
         Map.of("grades",tutor.grades(),"modes",tutor.modes(),"rate",tutor.hourlyRate(),
@@ -101,7 +110,7 @@ public class StudentRepository {
     db.update(
         "UPDATE student_profiles SET"
             + " nickname=?,grade=?,province=?,mode=?,max_hourly_rate=?,availability=?,survey=?,needs=?,consent_at=CURRENT_TIMESTAMP"
-            + " WHERE id=? AND parent_id=?",
+            + " WHERE id=? AND parent_id=? AND deleted_at IS NULL",
         s.nickname().trim(),
         s.grade(),
         s.province().trim(),

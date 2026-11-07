@@ -14,7 +14,7 @@ import org.springframework.stereotype.Repository;
 public class TutorRepository {
   private static final String PUBLIC =
       " t.workflow_state='APPROVED' AND t.verification_status='APPROVED' AND t.visible=TRUE AND"
-          + " u.email_verified=TRUE ";
+          + " u.email_verified=TRUE AND u.deleted_at IS NULL AND t.deleted_at IS NULL ";
   private final JdbcTemplate db;
   private final NamedParameterJdbcTemplate named;
   private final TutorMapper mapper;
@@ -26,23 +26,33 @@ public class TutorRepository {
   }
 
   public Optional<TutorProfile> findByUser(String user) {
-    return hydrate(db.queryForList("SELECT * FROM tutor_profiles WHERE user_id=?", user)).stream()
+    return hydrate(db.queryForList("SELECT * FROM tutor_profiles WHERE user_id=? AND deleted_at IS NULL", user)).stream()
         .findFirst();
   }
 
   public Optional<TutorProfile> lockByUser(String user) {
-    return hydrate(db.queryForList("SELECT * FROM tutor_profiles WHERE user_id=? FOR UPDATE", user))
+    return hydrate(db.queryForList("SELECT * FROM tutor_profiles WHERE user_id=? AND deleted_at IS NULL FOR UPDATE", user))
         .stream()
         .findFirst();
   }
 
+  /** Reuse a deleted profile's identity so recreating it cannot reset pair decisions or quotas. */
+  public Optional<TutorProfile> lockForSave(String user) {
+    return hydrate(db.queryForList("SELECT * FROM tutor_profiles WHERE user_id=? FOR UPDATE",user))
+        .stream().findFirst();
+  }
+
+  public boolean lockActiveOwner(String user) {
+    return !db.queryForList("SELECT id FROM users WHERE id=? AND role='TUTOR' AND deleted_at IS NULL FOR UPDATE",user).isEmpty();
+  }
+
   public Optional<TutorProfile> findById(String id) {
-    return hydrate(db.queryForList("SELECT * FROM tutor_profiles WHERE id=?", id)).stream()
+    return hydrate(db.queryForList("SELECT * FROM tutor_profiles WHERE id=? AND deleted_at IS NULL", id)).stream()
         .findFirst();
   }
 
   public Optional<TutorProfile> lockById(String id) {
-    return hydrate(db.queryForList("SELECT * FROM tutor_profiles WHERE id=? FOR UPDATE", id))
+    return hydrate(db.queryForList("SELECT * FROM tutor_profiles WHERE id=? AND deleted_at IS NULL FOR UPDATE", id))
         .stream()
         .findFirst();
   }
@@ -59,7 +69,7 @@ public class TutorRepository {
 
   public List<TutorProfile> findAll() {
     return hydrate(
-        db.queryForList("SELECT * FROM tutor_profiles ORDER BY workflow_state,display_name,id"));
+        db.queryForList("SELECT * FROM tutor_profiles WHERE deleted_at IS NULL ORDER BY workflow_state,display_name,id"));
   }
 
   public List<TutorProfile> findPublicByIds(List<String> ids) {
@@ -77,7 +87,7 @@ public class TutorRepository {
         db.queryForList(
             "SELECT t.* FROM tutor_profiles t JOIN users u ON u.id=t.user_id WHERE"
                 + PUBLIC
-                + "AND t.hourly_rate<=? AND EXISTS(SELECT 1 FROM tutor_grades g WHERE"
+                + "AND t.accepting_students=TRUE AND t.hourly_rate<=? AND EXISTS(SELECT 1 FROM tutor_grades g WHERE"
                 + " g.tutor_id=t.id AND g.grade=?) AND EXISTS(SELECT 1 FROM tutor_modes m WHERE"
                 + " m.tutor_id=t.id AND m.mode=?) AND (?='ONLINE' OR LOWER(t.province)=LOWER(?))"
                 + " AND NOT EXISTS(SELECT 1 FROM swipe_interactions w WHERE w.student_id=? AND"
@@ -157,7 +167,7 @@ public class TutorRepository {
             // Profile edits require another review before public display (see withdrawReview below).
             // The public name is the account's display name; the name typed here is the legal one.
             + " display_name=(SELECT full_name FROM users WHERE id=?),legal_name=?,province=?,hourly_rate=?,teaching_description=?,background=?,experience_years=?,teaching_style=?,availability=?,achievements=?,revision=revision+1"
-            + " WHERE id=?",
+            + ",accepting_students=IF(deleted_at IS NOT NULL,TRUE,accepting_students),deleted_at=NULL WHERE id=?",
         user,
         t.fullName().trim(),
         t.province().trim(),

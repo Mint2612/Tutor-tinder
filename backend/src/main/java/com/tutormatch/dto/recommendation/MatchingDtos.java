@@ -20,7 +20,7 @@ public final class MatchingDtos {
       TutorPreview tutor, StudentPreview student, Instant expiresAt, boolean canLike, String status,
       int ruleScore) {}
   public record Pair(String studentId, String tutorId, String status, Instant matchedAt) {}
-  public record Feed(List<Card> cards, Limits limits, List<Pair> matches, List<Card> savedCards) {}
+  public record Feed(List<Card> cards, Limits limits, List<Pair> matches, List<Card> savedCards, boolean paused) {}
   public record Result(String status, boolean matched, String message) {}
   public record Notification(String id, String studentId, String tutorId, String message,
       Instant createdAt) {}

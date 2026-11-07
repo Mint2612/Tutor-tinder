@@ -6,6 +6,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class EligibilityPolicy {
   public boolean eligible(StudentProfile s, TutorProfile t) {
+    return s.visible() && t.acceptingStudents() && compatible(s,t);
+  }
+
+  public boolean compatible(StudentProfile s, TutorProfile t) {
     return t.workflowState().equals("APPROVED")
         && t.verificationStatus().equals("APPROVED")
         && t.visible()

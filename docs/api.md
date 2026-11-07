@@ -55,3 +55,14 @@ LLM_URL is the full chat-completions-compatible POST endpoint, with LLM_MODEL an
 The current UI uses the new [matching API](sprint4-matching.md#api). `GET /students/{id}/matching` (owner parent) and `GET /tutor/matching` (approved visible tutor) return `{cards,limits,matches,savedCards}`. `POST /matching/actions` accepts `{studentId,tutorId,interested}` for either role and enforces ownership, eligibility, irreversible decisions, expiry and quotas. One OK is pending; two OKs atomically create a Match and two durable notices. GET `/matching/notifications` and POST `/matching/notifications/{id}/read` operate only on the current account.
 
 Student previews are explicit anonymous DTOs: no raw narrative, identity or parent contact metadata. Limits are 10 total OK/day and 3 incoming-interest OK/day per profile, reset at midnight Asia/Ho_Chi_Minh; quota exhaustion returns 429 without removing the card. Interest expires after 7 days; stale/closed actions return 409. Same-decision retries are idempotent and never refund or double-consume quota. New matching feeds are rules-only; the older `/recommendations` adapter is retained separately for compatibility/AI regression tests. Legacy `/swipes` also enforces matching state and quota. Post-Match detail and connection-confirmation APIs are Sprint 5 backlog.
+
+## Profile/account management
+
+See [management API](profile-management.md#api). New endpoints are PUT `/students/{id}/visibility`,
+DELETE `/students/{id}`, PUT `/tutor/availability`, DELETE `/tutor/profile` and DELETE `/account`.
+They enforce role, ownership, CSRF and explicit deletion confirmation. Account/tutor-profile deletion
+also verifies the current password and throttles attempts. Student responses include `visible`, private
+tutor responses include `accepting_students`, and matching feeds include `paused`. Hidden profiles
+cannot receive new likes through either matching or legacy swipe APIs. Deleting an account revokes
+all login sessions and challenges; deleted profiles never reappear in discovery. Recreating a tutor
+profile preserves its ID, daily quota and closed pair decisions and requires a new review.

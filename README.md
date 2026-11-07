@@ -36,6 +36,14 @@ Current scope: steps 1–6 (Sprints 1–4). The existing trial-request workflow 
 
 The scope excludes payment, realtime chat, video, calendar reservations and reviews after lessons.
 
+## Profile management
+
+Parents can edit, hide/show and delete student profiles. Tutors can pause receiving new students
+independently of admin visibility, or delete their teaching profile and create a new draft later.
+Parents/tutors can delete their account with a current-password confirmation; sessions are revoked
+and identifying profile data is removed while historical references stay anonymous. See
+[profile/account management](docs/profile-management.md) for behavior and endpoints.
+
 ## Verification
 
 ```sh

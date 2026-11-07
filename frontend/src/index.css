@@ -1302,3 +1302,9 @@ summary {
 .matching-saved .swipe-area { width: 100%; }
 .matching-limits { color: var(--muted, #5b6460); line-height: 1.7; }
 .match-notifications { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 16px; margin: 16px 0; border: 1px solid #a4c7ad; border-radius: 16px; background: #edf7ee; }
+.danger-zone { margin-top: 24px; border-color: #dfaaa3; }
+.danger-button { background: #a9362d; color: white; }
+.danger-button:hover { background: #87271f; }
+.danger-text { color: #a9362d; }
+.student .secondary + .secondary { margin-top: 10px; }
+.tutor-controls { margin: 24px 0; }

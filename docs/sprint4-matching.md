@@ -23,7 +23,7 @@ Triển khai theo S4-01 đến S4-03 trong [tracking sản phẩm](../Specs/SPRI
 - Ngày được tính theo `Asia/Ho_Chi_Minh`, đặt lại lúc 00:00. Bộ đếm được tăng nguyên tử trong cùng transaction với lựa chọn; Bỏ qua không trừ lượt. Gửi lại cùng lựa chọn không tạo thông báo hoặc trừ lượt lần nữa.
 - Hết lượt: server trả 429; nút OK và vuốt phải bị khóa. Thẻ vẫn được giữ, Bỏ qua vẫn dùng được.
 - Thời hạn **7 ngày tính từ OK đầu tiên**, không gia hạn bằng tải lại hay gửi lại. Lựa chọn đến muộn bị từ chối ngay; truy cập danh sách cập nhật trạng thái `EXPIRED` và loại cặp khỏi cả hai phía. Không cần tác vụ nền để chặn Match sau hạn.
-- Khóa theo thứ tự gia sư → cặp → bộ đếm; upsert bộ đếm lấy khóa độc quyền để tránh deadlock khi nhiều yêu cầu OK đồng thời.
+- Khóa theo thứ tự tài khoản gia sư → hồ sơ gia sư → tài khoản phụ huynh → hồ sơ học sinh → cặp → bộ đếm; kiểm tra tài khoản còn hoạt động để ngăn lượt OK tạo lại cặp sau khi xóa tài khoản. Upsert bộ đếm lấy khóa độc quyền để tránh deadlock khi nhiều yêu cầu OK đồng thời.
 
 ## API
 

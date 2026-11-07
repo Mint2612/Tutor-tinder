@@ -103,9 +103,9 @@ public class MatchingService {
     var savedIds=pairs.stream().filter(p -> "LIKE".equals(p.parentChoice()) && active(p))
         .map(State::tutorId).toList();
     for(var t:tutorRepository.findPublicByIds(savedIds)) {
-      if(eligibility.eligible(s,t)) saved.add(card(s,t,byTutor.get(t.id()),true,limits));
+      if(eligibility.compatible(s,t) && (byTutor.get(t.id()).status().equals("MATCHED") || eligibility.eligible(s,t))) saved.add(card(s,t,byTutor.get(t.id()),true,limits));
     }
-    return new Feed(sort(cards),limits,matches(pairs),saved);
+    return new Feed(sort(cards),limits,matches(pairs),saved,!s.visible());
   }
   @Transactional
   public Feed tutorFeed(String user) {
@@ -123,9 +123,9 @@ public class MatchingService {
       var pair=byStudent.get(s.id());
       if(ready(s) && pending(pair,false) && eligibility.eligible(s,t)) cards.add(card(s,t,pair,false,limits));
       if(ready(s) && pair!=null && "LIKE".equals(pair.tutorChoice()) && active(pair)
-          && eligibility.eligible(s,t)) saved.add(card(s,t,pair,false,limits));
+          && eligibility.compatible(s,t) && (pair.status().equals("MATCHED") || eligibility.eligible(s,t))) saved.add(card(s,t,pair,false,limits));
     }
-    return new Feed(sort(cards),limits,matches(pairs),saved);
+    return new Feed(sort(cards),limits,matches(pairs),saved,!t.acceptingStudents());
   }
   private boolean active(State p) {
     return p.status().equals("MATCHED") || (p.status().equals("OPEN")
@@ -135,12 +135,17 @@ public class MatchingService {
   public Result act(Account user,Action action) {
     role(user);
     boolean parent=user.role().equals("PARENT");
-    // All mutations lock the tutor, then the pair, then quota. This also serializes profile edits.
+    // Account -> profile -> pair -> quota. Lock active owners before profile writes, so a
+    // request authenticated just before account deletion cannot recreate a closed pair.
+    var found=tutors.find(action.tutorId());
+    require(tutorRepository.lockActiveOwner(found.userId()),404,"Hồ sơ không còn hoạt động.");
     var t=tutors.lock(action.tutorId());
     if(!parent) require(t.userId().equals(user.id()),404,"Không tìm thấy cặp phù hợp.");
     tutors.publicTutor(t.id());
     var s=parent ? students.owned(action.studentId(),user.id()) : studentRepository.findById(action.studentId())
         .orElseThrow(() -> new BusinessException(404,"Không tìm thấy cặp phù hợp."));
+    require(studentRepository.lockActiveParent(s.parentId()),404,"Hồ sơ không còn hoạt động.");
+    s=studentRepository.lockById(s.id()).orElseThrow(() -> new BusinessException(404,"Không tìm thấy cặp phù hợp."));
     require(ready(s) && eligibility.eligible(s,t),400,"Cặp không còn đáp ứng điều kiện bắt buộc.");
     Instant now=Instant.now();
     var pair=matching.lockPair(s.id(),t.id());

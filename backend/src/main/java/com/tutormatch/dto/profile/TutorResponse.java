@@ -38,4 +38,5 @@ public record TutorResponse(
     Integer revision,
     @JsonProperty("submitted_at") Instant submittedAt,
     List<DocumentResponse> documents,
-    List<AuditResponse> audit) {}
+    List<AuditResponse> audit,
+    @JsonProperty("accepting_students") Boolean acceptingStudents) {}

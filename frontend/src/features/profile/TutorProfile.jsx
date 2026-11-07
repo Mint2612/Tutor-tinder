@@ -7,6 +7,8 @@ import { EvidenceSection } from "../tutors/EvidenceSection";
 import { AccountCard } from "./AccountCard";
 import { AvatarUploader } from "./AvatarUploader";
 import { VerificationBadges } from "./VerificationBadges";
+import { TutorControls } from "./TutorControls";
+import { AccountDeletion } from "./AccountDeletion";
 
 export function TutorProfile() {
   const { busy, tutor, setTutor, setNotification, run } = useWorkspace();
@@ -27,6 +29,7 @@ export function TutorProfile() {
         )}
       </section>
       <VerificationBadges tutor={tutor} />
+      <TutorControls />
       <TutorForm
         // Keyed by profile, not revision: uploading a photo must not discard unsaved edits.
         key={tutor?.id ?? "new"}
@@ -41,6 +44,7 @@ export function TutorProfile() {
       />
       {tutor && <EvidenceSection />}
       <AccountCard />
+      <AccountDeletion />
     </>
   );
 }

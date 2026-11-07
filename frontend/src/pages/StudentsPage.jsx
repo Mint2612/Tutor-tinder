@@ -8,6 +8,8 @@ import {
   StudentPicker,
 } from "../components/shared";
 import { StudentForm } from "../features/students/StudentForm";
+import { useState } from "react";
+import { DeleteDialog } from "../features/profile/DeleteDialog";
 
 export function StudentsPage() {
   const {
@@ -23,7 +25,9 @@ export function StudentsPage() {
     setNotification,
     run,
     discover,
+    error, setError,
   } = useWorkspace();
+  const [deleting, setDeleting] = useState(null);
   return (
     <>
       <PageHeading
@@ -32,7 +36,7 @@ export function StudentsPage() {
         description="Mỗi hồ sơ có nhu cầu và danh sách gợi ý riêng."
       />
       <div className="toolbar">
-        <button onClick={() => setEditing({ ...blankStudent })}>
+        <button disabled={busy} onClick={() => setEditing({ ...blankStudent })}>
           + Thêm hồ sơ học sinh
         </button>
         {students.length > 0 && (
@@ -80,11 +84,13 @@ export function StudentsPage() {
               </p>
               <p className="muted">{s.needs}</p>
               <div className="tags">
+                <span>{s.visible ? "Đang hiển thị" : "Đang tạm ẩn"}</span>
                 <span>{s.mode === "ONLINE" ? "Trực tuyến" : s.province}</span>
                 <span>Đến {money(s.max_hourly_rate)}/giờ</span>
               </div>
               <button
                 className="secondary"
+                disabled={busy}
                 onClick={() =>
                   setEditing({
                     ...s,
@@ -95,6 +101,13 @@ export function StudentsPage() {
               >
                 Chỉnh sửa hồ sơ & khảo sát
               </button>
+              <button className="secondary" disabled={busy} onClick={() => run(async () => {
+                const saved = await api(`/students/${s.id}/visibility`, { method: "PUT", body: { visible: !s.visible } });
+                setStudents((items) => items.map((item) => item.id === saved.id ? saved : item));
+                setRecommendations([]); setLoadedDiscovery(false);
+                setNotification(saved.visible ? "Đã bật hiển thị hồ sơ con." : "Đã tạm ẩn hồ sơ con khỏi đề xuất. Match đã có vẫn được giữ.");
+              })}>{s.visible ? "Ẩn hồ sơ con" : "Bật hiển thị hồ sơ con"}</button>
+              <button className="text-button danger-text" disabled={busy} onClick={() => { setError(""); setDeleting(s); }}>Xóa hồ sơ con</button>
             </article>
           ))}
         </div>
@@ -107,13 +120,21 @@ export function StudentsPage() {
       {students.length > 0 && !editing && (
         <button
           className="wide-cta"
-          disabled={busy || !selected}
+          disabled={busy || !selected || !students.find((s) => s.id === selected)?.visible}
           onClick={discover}
         >
           Khám phá gia sư cho{" "}
           {students.find((s) => s.id === selected)?.nickname} →
         </button>
       )}
+      {deleting && <DeleteDialog title={`Xóa hồ sơ ${deleting.nickname}`} busy={busy} error={error}
+        description="Hồ sơ con sẽ bị xóa khỏi tài khoản và danh sách đề xuất; các cặp liên quan được đóng. Lịch sử được giữ dưới dạng ẩn danh. Thao tác không thể hoàn tác."
+        close={() => { setError(""); setDeleting(null); }} confirm={() => run(async () => {
+          await api(`/students/${deleting.id}`, { method: "DELETE", body: { confirmation: "DELETE" } });
+          const remaining = await api("/students"); setStudents(remaining);
+          setSelected(selected === deleting.id ? remaining[0]?.id || "" : selected);
+          setRecommendations([]); setLoadedDiscovery(false); setDeleting(null); setNotification("Đã xóa hồ sơ con.");
+        })} />}
     </>
   );
 }
