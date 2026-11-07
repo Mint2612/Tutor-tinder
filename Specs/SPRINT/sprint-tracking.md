@@ -33,7 +33,7 @@ Các US của Sprint 1: [US-01](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIE
 
 - [ ] **S2-01 — Hồ sơ học sinh:** Phụ huynh muốn tạo/sửa thông tin học của con để tìm gia sư đúng nhu cầu. **Done:** lưu được môn, lớp, hình thức học, khu vực, lịch và ngân sách khi đã đồng ý lưu dữ liệu; ghi nhận đồng ý; tải lại vẫn có dữ liệu; phụ huynh khác không xem/sửa được.
 - [ ] **S2-02 — Khảo sát nhu cầu:** Phụ huynh muốn mô tả cách học và nhu cầu của con để nhận gợi ý phù hợp hơn. **Done:** trả lời được 6 câu khảo sát và mô tả tự do; lưu đúng hồ sơ học sinh; mở lại xem/sửa được.
-- [ ] **S2-03 — Hồ sơ gia sư:** Gia sư muốn giới thiệu khả năng và điều kiện dạy để được tìm thấy. **Done:** lưu/sửa được môn, lớp, hình thức, khu vực, lịch rảnh, học phí, kinh nghiệm và phương pháp dạy; dữ liệu sai bị báo lỗi; tải lại vẫn có dữ liệu.
+- [ ] **S2-03 — Hồ sơ gia sư:** Gia sư muốn giới thiệu khả năng và điều kiện dạy để được tìm thấy. **Done:** lưu/sửa được môn, lớp, hình thức, khu vực, lịch rảnh, học phí, kinh nghiệm và phương pháp dạy; dữ liệu sai bị báo lỗi; tải lại vẫn có dữ liệu. Nhận huy hiệu xác minh theo cấp đúng với bảng đã nêu trong README.md
 
 Các US của Sprint 2: [US-02](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIES.md#us-02-tạo-hồ-sơ-học-sinh-và-làm-khảo-sát), [US-03](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIES.md#us-03-gia-sư-tạo-hồ-sơ-và-khai-báo-phương-pháp-dạy).
 
