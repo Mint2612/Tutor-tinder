@@ -11,3 +11,5 @@ The generated nullable `pending_pair` column and unique index enforce at most on
 Before deployment, back up MariaDB and test migrations on a restored copy. Keep database and backup access private: identity documents are BLOBs in `tutor_documents`, served only through the admin endpoint. Configure encryption at rest, TLS, encrypted backups and a retention policy at deployment. No public object URLs or static file paths expose documents.
 
 Verification after setup: `docker compose --profile test run --rm backend-test` exercises V1/V2 against the isolated MariaDB test database. Tests create explicitly marked fixtures, never production users. Test database is tmpfs. Stop it without deleting application volumes with `docker compose stop test-db`.
+
+Email-only activation reuses `email_verified`; `phone_verified` remains for schema compatibility and is no longer required by authentication/discovery. No migration rewrites existing verification flags, and V1/V2 checksums remain unchanged.

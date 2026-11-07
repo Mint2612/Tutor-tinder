@@ -17,7 +17,7 @@ export function Notice({ children }) {
   ) : null;
 }
 
-export function Choices({ options, value, onChange }) {
+export function Choices({ options, value, onChange, labels = {} }) {
   return (
     <div className="choices">
       {options.map((option) => (
@@ -33,7 +33,7 @@ export function Choices({ options, value, onChange }) {
               )
             }
           />
-          {option}
+          {labels[option] || option}
         </label>
       ))}
     </div>
@@ -128,10 +128,19 @@ export function Empty({ title, text }) {
   );
 }
 
-export function StudentPicker({ students, selected, onChange }) {
+export function StudentPicker({
+  students,
+  selected,
+  onChange,
+  disabled = false,
+}) {
   return (
     <Field label="Hồ sơ học sinh">
-      <select value={selected} onChange={(e) => onChange(e.target.value)}>
+      <select
+        disabled={disabled}
+        value={selected}
+        onChange={(e) => onChange(e.target.value)}
+      >
         {!students.length && <option value="">Chưa có hồ sơ</option>}
         {students.map((s) => (
           <option key={s.id} value={s.id}>
@@ -143,7 +152,7 @@ export function StudentPicker({ students, selected, onChange }) {
   );
 }
 
-export function Modal({ children, close }) {
+export function Modal({ children, close, label = "Thông tin chi tiết" }) {
   const ref = useRef(null);
   useEffect(() => {
     const previous = document.activeElement;
@@ -158,6 +167,7 @@ export function Modal({ children, close }) {
     <dialog
       ref={ref}
       className="modal"
+      aria-label={label}
       onCancel={(e) => {
         e.preventDefault();
         close();

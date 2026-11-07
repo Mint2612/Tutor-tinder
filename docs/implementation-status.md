@@ -1,50 +1,43 @@
-# Implementation delivery — 2026-11-03 (Asia/Ho_Chi_Minh)
+# Implementation delivery — 2026-11-07 (Asia/Ho_Chi_Minh)
 
-This is the repository MVP implementation, retaining React, Spring Boot and MariaDB. External delivery/model credentials and browser acceptance testing are separate from the checks below. The new user specification supersedes conflicting older Specs.
+The source has been reorganized into explicit backend layers and frontend screens/features. The latest user scope is **Sprints 1–4 only**, with email-only activation and deterministic discovery. AI and new work on Sprints 5–6 are deferred. React, Spring Boot, MariaDB and the original V1/V2 migration files are retained.
 
-## Implemented
+## Delivered behavior
 
-| Area | Behavior | Verification |
-|---|---|---|
-| Authentication | Parent/tutor signup, independent email/phone activation, BCrypt, generic invalid-credential response, expiring opaque sessions, logout/reset revocation, CSRF and throttling; no public admin signup | MariaDB + Spring MVC integration tests, including real CSRF cookie/header exchange |
-| Students | Multiple owned profiles; consent timestamp; subject/grade/budget/schedule validation; six-question survey plus free-text needs; at most 15 survey answers in API | Integration tests cover ownership, consent and role boundaries; React compiled |
-| Tutors | Teaching profile editor, subjects/grades/formats/schedule/rate/methodology/experience; edits reset approval | Service/API integration tests; React compiled |
-| Verification | Private bounded uploads, metadata, human admin review tied to current submission, rejection reasons, audit, visibility control | Integration tests cover missing evidence, unauthorized reads, approval-before-review and reapproval after edits |
-| Recommendation | Strict eligibility; up to 20 anonymized candidates; replaceable chat-completions LLM adapter; <=5 validated qualitative results; deterministic fallback | Unit tests cover every mandatory constraint and invalid AI output; integration tests cover valid AI, fallback, privacy and a stalled provider returning fallback before ten seconds |
-| Discovery | Vietnamese tutor cards, pointer drag left/right, equivalent accessible buttons, detail dialog, persisted swipe; interest explicitly separate from acceptance | API persistence/eligibility tests; frontend build/lint; browser gestures not yet exercised |
-| Trials | Proposed time/message; unique pending pair; accepted/rejected/expired states; ownership; contact access only on acceptance | Integration tests cover duplicates, concurrent duplicate submissions, expiration, unauthorized responses, invalid transitions and contact gating |
-| Operations | Additive V2 migration, Docker Compose, CI-compatible tests, env template, API and setup docs | MariaDB migration/startup verified; production frontend/backend Docker builds; HTTP checks via nginx |
+| Area | Implementation |
+|---|---|
+| Backend structure | Controller → service → repository; typed domain models, validated request/response DTOs, dedicated mappers, business exceptions, security/configuration and integration packages. No SQL or JDBC handles in controllers/services. |
+| Accounts | Parent/tutor registration, SMTP email links and manual-code fallback, resend, login/logout, password reset and eight-hour opaque sessions. Email verification is sufficient; phone is contact information. No public admin registration. |
+| Security | BCrypt, hashed session/challenge secrets, CSRF, throttling, atomic single-use challenge consumption and reset session revocation. Attempt counters commit before consumption transactions so concurrent verification does not hold two database connections per request. |
+| Students | Multiple owned profiles, consent timestamps, six-question survey, needs, subjects, grade, format, province, budget and weekly availability. Switching students clears recommendations, saved interests and open tutor/trial context. |
+| Tutors | Full teaching-profile editor; edits reset approval/current submission. Subject/grade/mode relations are hydrated in batches. |
+| Verification | Private bounded evidence upload/deletion, submission, current-submission evidence access before admin approval, rejection reasons, visibility control and decision history in the admin UI. |
+| Discovery | Strict eligibility, deterministic ranking, qualitative explanations, pointer mouse/touch swipes and equivalent buttons, public profile details and loading/empty/error states. |
+| Saved interests | Parents reopen liked tutors after refresh, remove interests and send trial requests later. Ownership and current eligibility/visibility are reapplied. |
+| Trials (retained existing workflow; outside current scope) | Proposed time/message, unique pending pair, tutor acceptance/rejection, lazy expiration and contact disclosure only after acceptance. Status pages refresh through REST. |
+| Frontend | App/provider, reusable hooks, hash/email routing, pages, feature components and shared UI/API modules. Action locking, abortable page loads, session-expiry handling, form validation and accessible native dialogs. |
+| Local integrations | Mailpit SMTP inbox in Compose. Existing AI adapter retained but disabled; experimental AI additions and setup helper removed. |
+| Verification tooling | MariaDB regression suite, isolated browser-test Compose override, Playwright desktop/mobile workflows and browser checks in CI. The test image seeds Maven dependencies and preserves runtime cache in a dedicated volume. |
 
-## Files delivered
+## Executed checks
 
-- Backend `auth/`: security configuration, account APIs/service, delivery gateway and admin bootstrap.
-- Backend `platform/`: profile DTO/service/API, verification workflow, LLM interface/adapter, recommendations, trial/swipe APIs and structured errors.
-- `V2__mvp_workflows.sql`; existing V1 preserved. Existing demo assertion now checks only demo fixtures so legitimate approved fixtures do not invalidate it.
-- Tests: `MvpIntegrationTest`, `BrowserSecurityIntegrationTest`, `RecommendationServiceTest`; existing cosine and migration/demo tests retained.
-- React `App.jsx`, feature components under `components/`, shared API/CSRF client and constants, responsive Vietnamese styles; nginx upload/cache/forwarding configuration.
-- `.env.example`, Compose and backend Docker build caching; README, architecture, plan, environment, API, migrations and this status document.
+| Check | Result |
+|---|---|
+| Backend Maven verify against isolated MariaDB | **24 tests passed**, 0 failures/errors/skips. Includes 12 concurrent email verifications, reset guess limits, saved interests, public DTO privacy, all mandatory matching constraints, concurrent duplicate trial requests, contact gating and AI deadline/HTTP body limits. |
+| Frontend | Production build and Oxlint passed. |
+| Browser acceptance | **4 tests passed** on Chromium desktop and 360px mobile emulation. Includes mouse/touch gestures, email registration, private admin review, survey/consent, saved interests after refresh, changing students, removal/re-saving, trial acceptance, contact disclosure, email password reset and network-error recovery. |
+| Local SMTP | Real SMTP messages were captured and their verification/reset links consumed through Mailpit in the isolated browser stack. |
+| AI | **Deferred by user request.** Model downloads and the task-owned native server were stopped. No live AI completion is claimed. |
+| Migrations | V1/V2 source files unchanged; fresh schema, retained JPA validation and fixture idempotence exercised by backend/browser stacks. |
 
-## Checks and acceptance evidence
+Commands and scope are documented in [verification.md](verification.md). Browser emulation does not establish compatibility with every physical device or browser.
 
-Backend suite: 17 tests in total (including retained tests), run with Maven verify in Docker against isolated MariaDB 11.4. Provider delivery and ranking are mocked only in workflow tests; the default app has no mock users, fake activation or sample recommended cards. Fresh V1/V2 migration and subsequent migration validation have both been exercised.
+## Configuration and limits
 
-Frontend: Vite production build and existing Oxlint CI check. Real HTTP smoke checks through nginx: `/` 200, `/api/health` 200, `/api/auth/csrf` 200 with CSRF cookie, anonymous `/api/students` 401, mutation without CSRF 403, correctly protected invalid login 401. These checks do not constitute browser interaction tests.
-
-## Remaining configuration and limits
-
-- **Real email/SMS delivery is not configured or live-tested.** Supply a trusted delivery webhook implementing the API contract. Signup fails closed with 503 until this is configured; no secret is returned to frontend. Delivery during registration is synchronous; a partial external delivery failure can send a now-invalid code before the DB transaction rolls back. Retry signup/resend after resolving delivery. A transactional outbox is a future reliability improvement.
-- **Live LLM integration/model quality is not verified.** Supply endpoint, key and model if desired. The deterministic path remains operational without these. The application uses broad allowlisted teaching/learning categories; it does not send the student's detailed free-text narrative. It makes no scientific efficacy claim.
-- **No browser/device acceptance test has been run.** Mouse/touch gestures, layout across devices, screen readers and full UI journeys still need browser QA. Build and HTTP checks passed; they do not prove these interactions.
-- Trial status updates use refresh; no push/email notification system. Expiration is enforced on access and a proposed time is a request, not a reserved calendar slot.
-- Weekly availability is coarse AM/PM/EVENING; location matching requires consistent province names; no geocoding or date-specific booking/conflict engine. The UI offers seven canonical subjects and six survey questions.
-- Active view is held in React memory; page refresh opens the landing page after session restoration. Deep links are not implemented.
-- Identity review is manual. File signatures/size/type are checked, but malware scanning/OCR/fraud detection are not included. Deployment must configure encrypted DB/backups, restricted access and evidence retention. Expired session/challenge/throttle rows currently need operational cleanup.
-- SQL candidate hydration is intended for MVP scale; paginate/batch relation loading and profile queries before a large public rollout. Auth sessions are stored in MariaDB and checked per authenticated request.
-- Configure a private admin via bootstrap, HTTPS/secure cookies and deployment secrets before public use. No hosted deployment, provider subscription or production security audit is included.
-- Legacy V1 trial/review records require an explicit data reconciliation if deploying over a populated pre-MVP database; no automatic historical data conversion is performed.
-
-## Local account handoff follow-up
-
-On the user's request, three local demo accounts (PARENT, TUTOR, ADMIN) were manually provisioned and activated in the local database. Their randomly generated password is supplied in chat and stored only as BCrypt in the database; credentials are not seeded by application startup. These fixtures do not establish real email/phone verification or tutor identity approval. No approved tutor profile or student data was added.
-
-Live client checks exposed CSRF token rotation after authentication. The frontend API client now obtains the current CSRF token before each mutation. A Node-based check using the actual API client against nginx verified parent login, two consecutive consent-rejected mutations and logout; no student information was stored. All three account logins and roles were verified through HTTP. Browser interaction QA remains outstanding.
+- Local SMTP uses Mailpit at http://localhost:8025. Delivering to actual recipient inboxes requires external SMTP host/credentials/sender/TLS in `.env`; no external SMTP account has been provisioned.
+- AI is disabled with empty provider settings. Local runtime/download cache is ignored by Git and is not required to run Sprints 1–4.
+- Authentication checks verified email only. The legacy `phone_verified` column is retained without pretending a phone has been verified.
+- Availability is coarse weekly slots; provinces use consistent case-insensitive names. Proposed trial times do not reserve calendar slots. There is no realtime chat, push notification, payment, video, calendar conflict engine or lesson review workflow in this scope.
+- Identity verification remains manual; malware scanning, OCR and fraud detection are not included. Public hosting requires HTTPS/secure cookies, private database access and appropriate backup/evidence retention configuration. No public deployment was performed.
+- Legacy V1 trial/review records are not converted automatically. Expired authentication rows still need operational cleanup; SMTP delivery is synchronous rather than an outbox workflow.
+- Existing application data and manually provisioned local accounts were retained. Browser fixtures live in their separate temporary Compose project; no fictional approved tutors were seeded into the application database.

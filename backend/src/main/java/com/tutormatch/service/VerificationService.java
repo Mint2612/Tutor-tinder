@@ -1,0 +1,141 @@
+package com.tutormatch.service;
+
+import static com.tutormatch.exception.BusinessException.require;
+
+import com.tutormatch.dto.profile.TutorResponse;
+import com.tutormatch.dto.verification.*;
+import com.tutormatch.mapper.TutorMapper;
+import com.tutormatch.model.*;
+import com.tutormatch.repository.VerificationRepository;
+import java.util.*;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class VerificationService {
+  private final TutorService tutors;
+  private final VerificationRepository verification;
+  private final TutorMapper mapper;
+
+  public VerificationService(
+      TutorService tutors, VerificationRepository verification, TutorMapper mapper) {
+    this.tutors = tutors;
+    this.verification = verification;
+    this.mapper = mapper;
+  }
+
+  public List<DocumentResponse> documents(String user) {
+    return verification.documents(tutors.own(user).id());
+  }
+
+  @Transactional
+  public String upload(String user, String originalName, String type, byte[] bytes) {
+    var t = tutors.lockOwn(user);
+    editable(t);
+    require(bytes.length > 0 && bytes.length <= 5 * 1024 * 1024, 400, "Giấy tờ tối đa 5 MB");
+    require(
+        verification.documentCount(t.id()) < 5,
+        400,
+        "Tối đa 5 giấy tờ. Hãy xóa giấy tờ cũ trước khi thay thế.");
+    boolean pdf =
+        "application/pdf".equals(type)
+            && bytes.length > 4
+            && bytes[0] == '%'
+            && bytes[1] == 'P'
+            && bytes[2] == 'D'
+            && bytes[3] == 'F';
+    boolean png =
+        "image/png".equals(type)
+            && bytes.length > 8
+            && bytes[0] == (byte) 137
+            && bytes[1] == 'P'
+            && bytes[2] == 'N'
+            && bytes[3] == 'G'
+            && bytes[4] == 13
+            && bytes[5] == 10
+            && bytes[6] == 26
+            && bytes[7] == 10;
+    boolean jpg =
+        "image/jpeg".equals(type)
+            && bytes.length > 3
+            && bytes[0] == (byte) 255
+            && bytes[1] == (byte) 216
+            && bytes[2] == (byte) 255;
+    require(pdf || png || jpg, 400, "Chỉ nhận PDF, PNG hoặc JPEG hợp lệ");
+    String filename =
+        Optional.ofNullable(originalName).orElse("document").replaceAll("[^\\p{L}\\p{N}._ -]", "_");
+    if (filename.isBlank()) filename = "document";
+    filename = filename.substring(0, Math.min(200, filename.length()));
+    String id = UUID.randomUUID().toString();
+    verification.upload(id, t.id(), filename, type, bytes, t.revision());
+    return id;
+  }
+
+  @Transactional
+  public void remove(String user, String document) {
+    var t = tutors.lockOwn(user);
+    editable(t);
+    require(verification.remove(document, t.id()) == 1, 404, "Không tìm thấy giấy tờ");
+  }
+
+  @Transactional
+  public TutorProfile submit(String user) {
+    var t = tutors.lockOwn(user);
+    editable(t);
+    require(verification.documentCount(t.id()) > 0, 400, "Cần gửi bằng chứng danh tính");
+    require(
+        !t.displayName().isBlank()
+            && !t.subjects().isEmpty()
+            && !t.grades().isEmpty()
+            && !t.modes().isEmpty()
+            && !t.availability().isEmpty(),
+        400,
+        "Cần hoàn thiện hồ sơ trước khi gửi");
+    verification.submit(t.id(), UUID.randomUUID().toString());
+    return tutors.own(user);
+  }
+
+  public TutorResponse review(String id) {
+    return mapper.adminResponse(
+        tutors.find(id), verification.documents(id), verification.audit(id));
+  }
+
+  @Transactional
+  public DocumentContent read(String id, String admin) {
+    var d =
+        verification
+            .content(id)
+            .orElseThrow(
+                () ->
+                    new com.tutormatch.exception.BusinessException(404, "Không tìm thấy giấy tờ"));
+    tutors.lock(d.tutorId());
+    verification.recordRead(id, admin, d.tutorId());
+    return d;
+  }
+
+  @Transactional
+  public String decide(String id, String admin, VerificationRequests.Decision d) {
+    var t = tutors.lock(id);
+    require(t.workflowState().equals("PENDING_REVIEW"), 409, "Hồ sơ không chờ duyệt");
+    if (d.approve())
+      require(
+          verification.reviewedCurrentSubmission(id, admin),
+          400,
+          "Cần mở và kiểm tra bằng chứng danh tính trước khi duyệt");
+    else require(d.reason() != null && !d.reason().isBlank(), 400, "Cần nhập lý do từ chối");
+    String status = d.approve() ? "APPROVED" : "REJECTED";
+    verification.decide(id, admin, status, d.reason());
+    return status;
+  }
+
+  public void visibility(String id, boolean visible) {
+    require(verification.visibility(id, visible) == 1, 404, "Không tìm thấy gia sư");
+  }
+
+  private void editable(TutorProfile t) {
+    require(
+        Set.of("DRAFT", "REJECTED").contains(t.workflowState()),
+        409,
+        "Chỉ có thể sửa giấy tờ khi hồ sơ ở bản nháp hoặc bị từ chối");
+  }
+}
