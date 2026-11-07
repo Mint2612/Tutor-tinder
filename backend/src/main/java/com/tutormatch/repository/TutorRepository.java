@@ -152,10 +152,12 @@ public class TutorRepository {
     db.update(
         "UPDATE tutor_profiles SET"
             // photo_url is deliberately absent: the photo changes only through setPhoto().
-            // Profile edits require another review before public display.
-            + " display_name=?,province=?,hourly_rate=?,teaching_description=?,background=?,experience_years=?,teaching_style=?,availability=?,achievements=?,revision=revision+1"
+            // Profile edits require another review before public display (see withdrawReview below).
+            // The public name is the account's display name; the name typed here is the legal one.
+            + " display_name=(SELECT full_name FROM users WHERE id=?),legal_name=?,province=?,hourly_rate=?,teaching_description=?,background=?,experience_years=?,teaching_style=?,availability=?,achievements=?,revision=revision+1"
             + " WHERE id=?",
-        t.displayName().trim(),
+        user,
+        t.fullName().trim(),
         t.province().trim(),
         t.hourlyRate(),
         t.methodology().trim(),

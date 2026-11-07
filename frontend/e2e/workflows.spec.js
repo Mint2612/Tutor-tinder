@@ -86,12 +86,16 @@ async function swipeRight(page, mobile) {
     await page.mouse.up();
   }
 }
-async function register(page, request, role, email) {
+async function register(page, request, role, email, displayName) {
   await page.goto("/#/register");
   await page.getByLabel("Email", { exact: true }).fill(email);
+  // The name typed at registration is the public display name.
   await page
-    .getByLabel("Họ và tên")
-    .fill(role === "PARENT" ? "Phụ huynh kiểm thử" : "Gia sư trình duyệt");
+    .getByLabel("Tên hiển thị")
+    .fill(
+      displayName ??
+        (role === "PARENT" ? "Phụ huynh kiểm thử" : "Gia sư trình duyệt"),
+    );
   await page.getByLabel("Số điện thoại").fill("+84901234567");
   await page.getByLabel("Bạn tham gia với vai trò").selectOption(role);
   await page
@@ -130,13 +134,14 @@ test("email, private review, saved interests, trial acceptance and password rese
   const parentEmail = `parent-${suffix}@example.test`;
   const tutorEmail = `tutor-${suffix}@example.test`;
 
-  await register(page, request, "TUTOR", tutorEmail);
+  await register(page, request, "TUTOR", tutorEmail, `Gia sư ${suffix}`);
   await expect(
     page.getByRole("heading", { name: "Hồ sơ giảng dạy", exact: true }),
   ).toBeVisible();
+  // The profile asks for the legal name (for the admin's identity check), not the display name.
   await page
-    .getByLabel("Tên hiển thị", { exact: true })
-    .fill(`Gia sư ${suffix}`);
+    .getByLabel("Họ và tên (đúng như giấy tờ)", { exact: true })
+    .fill("Nguyễn Văn Kiểm Thử");
   await page.getByLabel("Tỉnh / thành phố", { exact: true }).fill("Hà Nội");
   await page
     .getByLabel("Học vấn, bằng cấp và kinh nghiệm")
@@ -144,7 +149,7 @@ test("email, private review, saved interests, trial acceptance and password rese
   await page
     .getByLabel("Phương pháp giảng dạy")
     .fill("Kiên nhẫn, thực hành từng bước.");
-  // A new time slot defaults to Monday 18:00-20:00, which overlaps the parent's "Thứ 2 tối".
+  // A new time slot defaults to Monday 18:00-20:00, which overlaps the parent's own slot.
   await page
     .getByRole("button", { name: "+ Thêm thời gian rảnh", exact: true })
     .click();
@@ -179,6 +184,10 @@ test("email, private review, saved interests, trial acceptance and password rese
   await card
     .getByRole("button", { name: "Xem hồ sơ & giấy tờ", exact: true })
     .click();
+  // The admin sees the legal name to compare it with the document.
+  await expect(
+    admin.getByText("Họ và tên khai báo (phải trùng giấy tờ):"),
+  ).toContainText("Nguyễn Văn Kiểm Thử");
   await expect(
     admin.getByRole("button", {
       name: "Phê duyệt sau khi kiểm tra",
@@ -219,9 +228,14 @@ test("email, private review, saved interests, trial acceptance and password rese
     .getByLabel("Tên gọi của con", { exact: true })
     .fill("Con kiểm thử");
   await page.getByLabel("Tỉnh / thành phố", { exact: true }).fill("Hà Nội");
-  await page
-    .getByLabel("Mục tiêu, khó khăn và điều bạn muốn gia sư hiểu")
-    .fill("Củng cố nền tảng Toán.");
+  const needs = page.getByLabel(
+    "Mục tiêu, khó khăn và điều bạn muốn gia sư hiểu",
+  );
+  // Contact details do not belong in text tutors can read.
+  await needs.fill("Gọi phụ huynh theo số 0903 123 456");
+  await expect(page.getByText("không được ghi số điện thoại")).toBeVisible();
+  await needs.fill("Củng cố nền tảng Toán.");
+  await expect(page.getByText("không được ghi số điện thoại")).toHaveCount(0);
   const selectQuestions = [
     "Mục tiêu học tập chính?",
     "Con tiếp thu tốt nhất khi nào?",
@@ -234,7 +248,10 @@ test("email, private review, saved interests, trial acceptance and password rese
     await page
       .getByLabel(selectQuestions[index], { exact: false })
       .selectOption(value);
-  await page.getByLabel("Thứ 2 tối", { exact: true }).check();
+  // A new time slot defaults to Monday 18:00-20:00, which overlaps the tutor's slot.
+  await page
+    .getByRole("button", { name: "+ Thêm thời gian rảnh", exact: true })
+    .click();
   await page.getByRole("checkbox", { name: /Tôi là phụ huynh/ }).check();
   await page
     .getByRole("button", { name: "Lưu hồ sơ & khảo sát", exact: true })
@@ -262,6 +279,8 @@ test("email, private review, saved interests, trial acceptance and password rese
     ).toHaveCount(0);
   }
   await expect(page.locator(".tutor-card h2")).toHaveText(`Gia sư ${suffix}`);
+  // Parents only ever see the display name, never the legal name.
+  await expect(page.getByText("Nguyễn Văn Kiểm Thử")).toHaveCount(0);
   await swipeRight(page, testInfo.project.name === "mobile");
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByRole("button", { name: "Đóng cửa sổ", exact: true }).click();
@@ -406,7 +425,7 @@ test("parent signs in right after registering and a duplicate email gets sign-in
 
   await page.goto("/#/register");
   await page.getByLabel("Email", { exact: true }).fill(email);
-  await page.getByLabel("Họ và tên").fill("Người đăng ký lại");
+  await page.getByLabel("Tên hiển thị").fill("Người đăng ký lại");
   await page.getByLabel("Số điện thoại").fill("+84900000000");
   await page.getByLabel("Bạn tham gia với vai trò").selectOption("PARENT");
   await page

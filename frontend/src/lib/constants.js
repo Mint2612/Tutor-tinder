@@ -97,7 +97,7 @@ export const blankStudent = {
   consent: false,
 };
 export const blankTutor = {
-  displayName: "",
+  fullName: "",
   photoUrl: "",
   subjects: ["Toán"],
   grades: [6],

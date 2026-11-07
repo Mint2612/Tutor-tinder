@@ -62,6 +62,7 @@ public class TutorService {
   @Transactional
   public TutorProfile save(String user, TutorRequest t) {
     require(SUBJECTS.containsAll(t.subjects()), 400, "Môn học không hợp lệ");
+    province(t.province());
     distinct(t.subjects());
     distinct(t.grades());
     distinct(t.modes());

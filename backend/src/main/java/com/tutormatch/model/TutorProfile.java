@@ -26,4 +26,6 @@ public record TutorProfile(
     String submissionId,
     Instant submittedAt,
     Instant verifiedAt,
-    String achievements) {}
+    String achievements,
+    /** Legal full name as on the identity documents; private to the owner and admins. */
+    String legalName) {}

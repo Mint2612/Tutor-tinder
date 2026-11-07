@@ -8,7 +8,7 @@ import { Field } from "../../components/shared";
 const ACCEPT = "application/pdf,image/png,image/jpeg";
 const reviewNote = {
   APPROVED:
-    "Hồ sơ đã được duyệt. Thêm, thay, đổi tên hoặc xóa minh chứng sẽ đưa hồ sơ về bản nháp để duyệt lại; thông tin và ảnh thì sửa tự do.",
+    "Hồ sơ đã được duyệt. Thêm, thay, đổi tên hoặc xóa minh chứng sẽ đưa hồ sơ về bản nháp để duyệt lại.",
   PENDING_REVIEW:
     "Hồ sơ đang chờ duyệt. Nếu thêm, thay, đổi tên hoặc xóa minh chứng, bạn cần gửi duyệt lại.",
 };
@@ -95,7 +95,8 @@ export function EvidenceSection() {
       <h2>Giấy tờ xác minh riêng tư</h2>
       <p className="muted">
         Bằng chứng danh tính: PDF, PNG, JPEG, tối đa 5 MB mỗi tệp, 5 tệp. Tệp
-        được lưu trong kho riêng tư và chỉ quản trị viên có quyền đọc.
+        được lưu trong kho riêng tư và chỉ quản trị viên có quyền đọc. Họ và tên
+        trong hồ sơ giảng dạy cần trùng với giấy tờ.
       </p>
       {reviewNote[tutor.workflow_state] && (
         <p className="notice">{reviewNote[tutor.workflow_state]}</p>

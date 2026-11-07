@@ -9,7 +9,7 @@ export function ParentProfile() {
       <PageHeading
         eyebrow="TÀI KHOẢN"
         title="Thông tin của bạn."
-        description="Tên và số điện thoại dùng để liên hệ sau khi gia sư chấp nhận học thử."
+        description="Tên hiển thị và số điện thoại dùng để liên hệ sau khi gia sư chấp nhận học thử."
       />
       <AccountCard />
       <section className="panel">

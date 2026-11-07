@@ -27,6 +27,8 @@ public record TutorResponse(
     List<String> availability,
     /** Self-declared (verification level 3); shown to parents labelled "Tự khai", never ranked. */
     String achievements,
+    /** Legal name for identity checks: owner and admin only, never in a public response. */
+    @JsonProperty("full_name") String fullName,
     @JsonProperty("workflow_state") String workflowState,
     @JsonProperty("verification_status") String verificationStatus,
     @JsonProperty("verified_at") Instant verifiedAt,

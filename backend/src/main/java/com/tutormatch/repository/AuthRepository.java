@@ -39,6 +39,8 @@ public class AuthRepository {
 
   public void updateProfile(String id, String name, String phone) {
     db.update("UPDATE users SET full_name=?,phone=? WHERE id=?", name, phone, id);
+    // A tutor's public name is the account's display name: keep the profile in step with it.
+    db.update("UPDATE tutor_profiles SET display_name=? WHERE user_id=?", name, id);
   }
 
   public void create(

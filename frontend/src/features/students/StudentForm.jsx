@@ -1,10 +1,21 @@
 import { useState } from "react";
-import { Field, Choices, Schedule } from "../../components/shared";
+import { Field, Choices } from "../../components/shared";
+import { Combobox } from "../../components/Combobox";
+import { TimeSlots } from "../../components/TimeSlots";
 import { subjects, questions } from "../../lib/constants";
+import { PROVINCES } from "../../lib/provinces";
+import { parseSlot, toToken, slotProblems } from "../../lib/schedule";
+import { findContact, contactMessage } from "../../lib/contactInfo";
 
 export function StudentForm({ initial, save, cancel, busy }) {
-  const [form, setForm] = useState(initial);
+  // Free time as rows { day, start, end }; older coarse blocks open as their equivalent range.
+  const [form, setForm] = useState({
+    ...initial,
+    availability: initial.availability.map(parseSlot),
+  });
   const [validationError, setValidationError] = useState("");
+  // Tutors can read this text, but contact details only go out after a trial lesson is accepted.
+  const contactProblem = contactMessage(findContact(form.needs));
   const set = (key, value) => {
     setValidationError("");
     setForm((f) => ({ ...f, [key]: value }));
@@ -16,11 +27,21 @@ export function StudentForm({ initial, save, cancel, busy }) {
         e.preventDefault();
         if (!form.subjects.length || !form.availability.length) {
           setValidationError(
-            "Vui lòng chọn ít nhất một môn học và một buổi có thể học.",
+            "Vui lòng chọn ít nhất một môn học và thêm ít nhất một khung giờ rảnh.",
           );
           return;
         }
-        save(form);
+        if (slotProblems(form.availability).some(Boolean)) {
+          setValidationError(
+            "Hãy sửa các khung giờ rảnh được đánh dấu bên dưới.",
+          );
+          return;
+        }
+        if (contactProblem) {
+          setValidationError(contactProblem);
+          return;
+        }
+        save({ ...form, availability: form.availability.map(toToken) });
       }}
     >
       <h2>Hồ sơ & cách con học</h2>
@@ -52,14 +73,13 @@ export function StudentForm({ initial, save, cancel, busy }) {
             onChange={(e) => set("grade", +e.target.value)}
           />
         </Field>
-        <Field label="Tỉnh / thành phố">
-          <input
-            required
-            maxLength={100}
-            value={form.province}
-            onChange={(e) => set("province", e.target.value)}
-          />
-        </Field>
+        <Combobox
+          label="Tỉnh / thành phố"
+          options={PROVINCES}
+          value={form.province}
+          onChange={(value) => set("province", value)}
+          required
+        />
         <Field label="Hình thức học">
           <select
             value={form.mode}
@@ -94,9 +114,20 @@ export function StudentForm({ initial, save, cancel, busy }) {
           maxLength={3000}
           rows={3}
           value={form.needs}
+          aria-invalid={contactProblem ? "true" : undefined}
           onChange={(e) => set("needs", e.target.value)}
         />
       </Field>
+      {contactProblem ? (
+        <p className="field-error" role="alert">
+          {contactProblem}
+        </p>
+      ) : (
+        <p className="muted">
+          Đừng ghi số điện thoại hoặc email ở đây: thông tin liên hệ chỉ được chia
+          sẻ sau khi gia sư chấp nhận học thử.
+        </p>
+      )}
       <div className="survey">
         <h3>Khảo sát cách học</h3>
         {questions.map(([id, label, options], i) => (
@@ -118,9 +149,11 @@ export function StudentForm({ initial, save, cancel, busy }) {
           </Field>
         ))}
       </div>
-      <Schedule
+      <TimeSlots
         value={form.availability}
         onChange={(value) => set("availability", value)}
+        title="Thời gian rảnh của con mỗi tuần"
+        hint="Thêm từng khung giờ con có thể học. Gia sư được gợi ý khi có giờ rảnh trùng ít nhất 1 giờ với một khung bên dưới (khung ngắn hơn 1 giờ thì cần trùng cả khung)."
       />
       <label className="consent">
         <input

@@ -110,6 +110,11 @@ public class VerificationService {
     var t = tutors.lockOwn(user);
     editable(t);
     require(verification.documentCount(t.id()) > 0, 400, "Cần gửi bằng chứng danh tính");
+    // The admin compares this name with the documents, so it has to be filled in before review.
+    require(
+        t.legalName() != null && !t.legalName().isBlank(),
+        400,
+        "Cần nhập họ và tên đúng như giấy tờ trước khi gửi duyệt");
     require(
         !t.displayName().isBlank()
             && !t.subjects().isEmpty()

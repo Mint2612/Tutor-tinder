@@ -1,8 +1,14 @@
 import { DAY_NAMES, slotProblems } from "../lib/schedule";
 
 // Free time as a list of exact ranges instead of a morning/afternoon/evening grid. `value` is a
-// list of { day, start, end } rows; invalid rows stay visible with a message until fixed.
-export function TimeSlots({ value, onChange }) {
+// list of { day, start, end } rows; invalid rows stay visible with a message until fixed. The
+// title and hint default to the tutor's wording; the parent's form passes its own.
+export function TimeSlots({
+  value,
+  onChange,
+  title = "Thời gian rảnh có thể dạy mỗi tuần",
+  hint = "Thêm từng khung giờ bạn có thể dạy. Phụ huynh thêm các khung giờ con có thể học nên khung giờ của bạn cần trùng ít nhất 1 giờ với một khung của họ.",
+}) {
   const problems = slotProblems(value);
   const update = (index, patch) =>
     onChange(value.map((row, i) => (i === index ? { ...row, ...patch } : row)));
@@ -21,11 +27,8 @@ export function TimeSlots({ value, onChange }) {
   };
   return (
     <fieldset>
-      <legend>Thời gian rảnh có thể dạy mỗi tuần</legend>
-      <p className="muted">
-        Thêm từng khung giờ bạn có thể dạy. Phụ huynh chọn buổi sáng, chiều hoặc
-        tối nên khung giờ của bạn cần trùng ít nhất 1 giờ với buổi đó.
-      </p>
+      <legend>{title}</legend>
+      <p className="muted">{hint}</p>
       {value.length === 0 && (
         <p className="muted">Chưa có khung giờ nào. Hãy thêm ít nhất một.</p>
       )}

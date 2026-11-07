@@ -15,10 +15,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfException;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 
 @Configuration
 public class SecurityConfig {
+  static final String CSRF_REJECTED =
+      "Phiên biểu mẫu đã hết hạn hoặc không hợp lệ. Hãy tải lại trang rồi thử lại.";
+  static final String NOT_ALLOWED = "Tài khoản của bạn không có quyền thực hiện thao tác này.";
 
   @Bean
   org.springframework.security.core.userdetails.UserDetailsService noDefaultUsers() {
@@ -67,9 +71,12 @@ public class SecurityConfig {
         .exceptionHandling(
             e ->
                 e.authenticationEntryPoint((q, r, x) -> error(r, 401, "Vui lòng đăng nhập"))
+                    // Two different reasons arrive here as AccessDeniedException: a missing or
+                    // stale CSRF token (the form session expired) and a role that may not use
+                    // the endpoint. Each gets its own message so the user knows what to do.
                     .accessDeniedHandler(
                         (q, r, x) ->
-                            error(r, 403, "Không có quyền hoặc phiên biểu mẫu đã hết hạn")))
+                            error(r, 403, x instanceof CsrfException ? CSRF_REJECTED : NOT_ALLOWED)))
         .addFilterBefore(
             new SessionAuthenticationFilter(auth), UsernamePasswordAuthenticationFilter.class);
     return http.build();

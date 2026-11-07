@@ -86,7 +86,7 @@ export function Auth({
           )}
           {page === "register" && (
             <>
-              <Field label="Họ và tên">
+              <Field label="Tên hiển thị">
                 <input
                   name="name"
                   required
