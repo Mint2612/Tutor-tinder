@@ -5,10 +5,11 @@ import { useHashRoute } from "../hooks/useHashRoute";
 import { WorkspaceContext } from "./workspace-store";
 const authPages = ["login", "register", "verify", "forgot", "reset"];
 const rolePages = {
-  PARENT: ["students", "discover", "interests", "lessons"],
-  TUTOR: ["tutor", "lessons"],
+  PARENT: ["students", "discover", "interests", "lessons", "profile"],
+  TUTOR: ["profile", "lessons"],
   ADMIN: ["admin"],
 };
+const loadedPages = ["lessons", "profile", "admin", "interests"];
 
 export function WorkspaceProvider({ children }) {
   const [user, setUser] = useState(null),
@@ -24,7 +25,8 @@ export function WorkspaceProvider({ children }) {
     [interest, setInterest] = useState(null);
   const [lessons, setLessons] = useState([]),
     [tutor, setTutor] = useState(null),
-    [documents, setDocuments] = useState([]);
+    [documents, setDocuments] = useState([]),
+    [account, setAccount] = useState(null);
   const [queue, setQueue] = useState([]),
     [review, setReview] = useState(null),
     [interests, setInterests] = useState([]);
@@ -44,9 +46,7 @@ export function WorkspaceProvider({ children }) {
         : "login";
   const resourceKey = `${page}:${user?.id}:${selected}:${refresh}`;
   const loading =
-    !!user &&
-    ["lessons", "tutor", "admin", "interests"].includes(page) &&
-    loadedPageKey !== resourceKey;
+    !!user && loadedPages.includes(page) && loadedPageKey !== resourceKey;
   const studentsLoading =
     user?.role === "PARENT" && studentsOwnerLoaded !== user.id;
   const busy = actionBusy || loading || studentsLoading;
@@ -71,6 +71,7 @@ export function WorkspaceProvider({ children }) {
     setLessons([]);
     setTutor(null);
     setDocuments([]);
+    setAccount(null);
     setQueue([]);
     setReview(null);
     setInterests([]);
@@ -146,16 +147,19 @@ export function WorkspaceProvider({ children }) {
     const get = (path) => api(path, { signal: controller.signal });
     const load = async () => {
       if (page === "lessons") setLessons(await get("/lessons"));
-      else if (page === "tutor") {
-        try {
-          const profile = await get("/tutor/profile");
-          setTutor(profile);
-          setDocuments(await get("/tutor/documents"));
-        } catch (e) {
-          if (e.status === 404) {
-            setTutor(null);
-            setDocuments([]);
-          } else throw e;
+      else if (page === "profile") {
+        setAccount(await get("/account"));
+        if (user.role === "TUTOR") {
+          try {
+            const profile = await get("/tutor/profile");
+            setTutor(profile);
+            setDocuments(await get("/tutor/documents"));
+          } catch (e) {
+            if (e.status === 404) {
+              setTutor(null);
+              setDocuments([]);
+            } else throw e;
+          }
         }
       } else if (page === "admin") setQueue(await get("/admin/tutors"));
       else if (page === "interests")
@@ -163,7 +167,7 @@ export function WorkspaceProvider({ children }) {
           selected ? await get(`/students/${selected}/interests`) : [],
         );
     };
-    if (["lessons", "tutor", "admin", "interests"].includes(page)) {
+    if (loadedPages.includes(page)) {
       load()
         .catch((e) => {
           if (e.name !== "AbortError") setError(e.message);
@@ -225,10 +229,11 @@ export function WorkspaceProvider({ children }) {
           ["discover", "Khám phá gia sư"],
           ["interests", "Đã quan tâm"],
           ["lessons", "Lịch học thử"],
+          ["profile", "Tài khoản"],
         ]
       : user?.role === "TUTOR"
         ? [
-            ["tutor", "Hồ sơ giảng dạy"],
+            ["profile", "Hồ sơ của tôi"],
             ["lessons", "Yêu cầu học thử"],
           ]
         : [["admin", "Duyệt gia sư"]];
@@ -251,6 +256,7 @@ export function WorkspaceProvider({ children }) {
         lessons,
         tutor,
         documents,
+        account,
         queue,
         review,
         interests,
@@ -258,6 +264,7 @@ export function WorkspaceProvider({ children }) {
         notification,
         nav,
         setUser,
+        setAccount,
         setPage,
         setError,
         setStudents,

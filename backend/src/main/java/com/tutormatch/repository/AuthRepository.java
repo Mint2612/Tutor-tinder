@@ -31,6 +31,16 @@ public class AuthRepository {
         .map(mapper::credentials);
   }
 
+  public Optional<com.tutormatch.dto.auth.AccountProfile> profile(String id) {
+    return db.queryForList("SELECT id,email,full_name,role,phone FROM users WHERE id=?", id).stream()
+        .findFirst()
+        .map(mapper::profile);
+  }
+
+  public void updateProfile(String id, String name, String phone) {
+    db.update("UPDATE users SET full_name=?,phone=? WHERE id=?", name, phone, id);
+  }
+
   public void create(
       String id,
       String email,

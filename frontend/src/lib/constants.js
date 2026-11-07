@@ -107,6 +107,7 @@ export const blankTutor = {
   methodology: "",
   style: styles[0],
   background: "",
+  achievements: "",
   experience: 0,
   availability: [],
 };

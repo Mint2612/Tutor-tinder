@@ -34,7 +34,10 @@ public class AuthController {
   public MessageResponse register(@Valid @RequestBody Registration r, HttpServletRequest q) {
     auth.throttle("register:" + q.getRemoteAddr(), 8);
     auth.register(r);
-    return generic();
+    // Parents are active at once (no email step); tutors are told to check their inbox.
+    return "PARENT".equals(r.role())
+        ? new MessageResponse("Đã tạo tài khoản. Bạn có thể đăng nhập ngay.")
+        : generic();
   }
 
   @PostMapping("/resend")

@@ -13,4 +13,10 @@ final class ProfileValidation {
   static void distinct(Collection<?> values) {
     require(new HashSet<>(values).size() == values.size(), 400, "Không được lặp lại lựa chọn");
   }
+
+  /** Availability slots: no repeats, and valid, non-overlapping time ranges. */
+  static void availability(List<String> slots) {
+    distinct(slots);
+    Schedule.validate(slots);
+  }
 }

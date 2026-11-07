@@ -3,6 +3,7 @@ package com.tutormatch.service;
 import static com.tutormatch.exception.BusinessException.require;
 
 import com.tutormatch.dto.auth.AuthRequests;
+import com.tutormatch.exception.BusinessException;
 import com.tutormatch.integration.delivery.DeliveryGateway;
 import com.tutormatch.model.*;
 import com.tutormatch.repository.AuthRepository;
@@ -19,6 +20,8 @@ public class AuthService {
   public static final long SESSION_SECONDS = 28800;
   private static final String INVALID_LOGIN =
       "Thông tin đăng nhập không hợp lệ hoặc tài khoản chưa được kích hoạt";
+  private static final String DUPLICATE_PARENT =
+      "Email này đã có tài khoản. Hãy đăng nhập hoặc dùng “Quên mật khẩu”.";
   private final AuthRepository users;
   private final PasswordEncoder encoder;
   private final DeliveryGateway delivery;
@@ -51,11 +54,19 @@ public class AuthService {
     passwordLength(r.password());
     require(Set.of("PARENT", "TUTOR").contains(r.role()), 400, "Vai trò không hợp lệ");
     String email = canonical(r.email());
-    if (users.findByEmail(email).isPresent()) return;
+    boolean parent = "PARENT".equals(r.role());
+    if (users.findByEmail(email).isPresent()) {
+      // A parent is active immediately, so there is no email step to hide behind: tell them to sign
+      // in. Tutors keep the generic response because their activation still goes through email.
+      if (parent) throw new BusinessException(409, DUPLICATE_PARENT);
+      return;
+    }
     String id = UUID.randomUUID().toString();
+    // Only tutors verify their email (verification level 1). Parents need no verification; the
+    // email_verified column doubles as the "account is active" flag, so they are created active.
     users.create(
-        id, email, r.name().trim(), r.role(), encoder.encode(r.password()), r.phone(), false);
-    challenge(id, "EMAIL", email);
+        id, email, r.name().trim(), r.role(), encoder.encode(r.password()), r.phone(), parent);
+    if (!parent) challenge(id, "EMAIL", email);
   }
 
   private void challenge(String user, String purpose, String destination) {
@@ -90,6 +101,18 @@ public class AuthService {
     users.createSession(
         Tokens.hash(token), user.account().id(), Instant.now().plusSeconds(SESSION_SECONDS));
     return new SignedIn(user.account(), token);
+  }
+
+  public com.tutormatch.dto.auth.AccountProfile profile(String id) {
+    return users
+        .profile(id)
+        .orElseThrow(() -> new BusinessException(404, "Không tìm thấy tài khoản"));
+  }
+
+  @Transactional
+  public com.tutormatch.dto.auth.AccountProfile updateProfile(String id, String name, String phone) {
+    users.updateProfile(id, name.trim(), phone);
+    return profile(id);
   }
 
   public Optional<Account> authenticate(String token) {

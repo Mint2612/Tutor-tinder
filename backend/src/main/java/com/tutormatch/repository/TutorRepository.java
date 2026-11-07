@@ -151,10 +151,12 @@ public class TutorRepository {
           json(t.availability()));
     db.update(
         "UPDATE tutor_profiles SET"
-            + " display_name=?,photo_url=?,province=?,hourly_rate=?,teaching_description=?,background=?,experience_years=?,teaching_style=?,availability=?,workflow_state='DRAFT',verification_status='PENDING',verified_at=NULL,rejection_reason=NULL,submission_id=NULL,submitted_at=NULL,revision=revision+1"
+            // photo_url is deliberately absent: the photo changes only through setPhoto().
+            // Neither does the review state change here: only the evidence documents are reviewed,
+            // so editing the profile never sends an approved tutor back to review.
+            + " display_name=?,province=?,hourly_rate=?,teaching_description=?,background=?,experience_years=?,teaching_style=?,availability=?,achievements=?,revision=revision+1"
             + " WHERE id=?",
         t.displayName().trim(),
-        t.photoUrl().trim(),
         t.province().trim(),
         t.hourlyRate(),
         t.methodology().trim(),
@@ -162,6 +164,7 @@ public class TutorRepository {
         t.experience(),
         t.style().trim(),
         json(t.availability()),
+        t.achievements() == null || t.achievements().isBlank() ? null : t.achievements().trim(),
         id);
     db.update("DELETE FROM tutor_subjects WHERE tutor_id=?", id);
     db.update("DELETE FROM tutor_grades WHERE tutor_id=?", id);
@@ -169,5 +172,10 @@ public class TutorRepository {
     for (var s : t.subjects()) db.update("INSERT INTO tutor_subjects VALUES(?,?)", id, s);
     for (var g : t.grades()) db.update("INSERT INTO tutor_grades VALUES(?,?)", id, g);
     for (var m : t.modes()) db.update("INSERT INTO tutor_modes VALUES(?,?)", id, m);
+  }
+
+  /** A new photo takes effect at once; it is not part of what an admin reviews. */
+  public void setPhoto(String id, String url) {
+    db.update("UPDATE tutor_profiles SET photo_url=? WHERE id=?", url, id);
   }
 }

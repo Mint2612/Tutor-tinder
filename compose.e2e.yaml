@@ -26,3 +26,8 @@ services:
   mailpit:
     ports: !override
       - "127.0.0.1:38025:8025"
+  minio:
+    ports: !reset []
+    volumes: !reset []
+    tmpfs:
+      - /data

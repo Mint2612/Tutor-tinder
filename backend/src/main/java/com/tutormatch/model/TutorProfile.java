@@ -25,4 +25,5 @@ public record TutorProfile(
     int revision,
     String submissionId,
     Instant submittedAt,
-    Instant verifiedAt) {}
+    Instant verifiedAt,
+    String achievements) {}

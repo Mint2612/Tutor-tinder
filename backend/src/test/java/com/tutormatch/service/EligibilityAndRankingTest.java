@@ -60,6 +60,7 @@ class EligibilityAndRankingTest {
         1,
         "private-submission-id",
         null,
+        null,
         null);
   }
 
@@ -172,6 +173,45 @@ class EligibilityAndRankingTest {
                 "Hà Nội",
                 List.of("2_AM")));
     for (var t : cases) assertFalse(policy.eligible(student(), t));
+  }
+
+  @Test
+  void exactTutorRangesDecideEligibilityAgainstTheFamilysCoarseSlots() {
+    java.util.function.Function<List<String>, TutorProfile> withHours =
+        hours ->
+            tutor(
+                "APPROVED",
+                "APPROVED",
+                true,
+                150000,
+                List.of(6),
+                List.of("Toán"),
+                List.of("IN_PERSON"),
+                "Hà Nội",
+                hours);
+    assertTrue(policy.eligible(student(), withHours.apply(List.of("1_19:00-20:30"))));
+    assertTrue(policy.eligible(student(), withHours.apply(List.of("1_17:00-19:00", "3_AM"))));
+    assertFalse(policy.eligible(student(), withHours.apply(List.of("1_09:00-12:00"))));
+    assertFalse(policy.eligible(student(), withHours.apply(List.of("1_21:30-23:00")))); // 30 minutes
+    assertFalse(policy.eligible(student(), withHours.apply(List.of("2_19:00-21:00"))));
+  }
+
+  @Test
+  void scoreCountsCoveredSlotsExactlyAsTheOldTokenOverlapDid() {
+    // 4 years of experience + 1 shared slot * 3 + cheaper than 80% of the budget (3).
+    assertEquals(10, policy.score(student(), tutor()));
+    var exact =
+        tutor(
+            "APPROVED",
+            "APPROVED",
+            true,
+            150000,
+            List.of(6),
+            List.of("Toán"),
+            List.of("IN_PERSON"),
+            "Hà Nội",
+            List.of("1_19:00-21:00"));
+    assertEquals(10, policy.score(student(), exact));
   }
 
   @Test

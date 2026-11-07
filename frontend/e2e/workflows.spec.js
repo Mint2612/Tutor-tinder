@@ -100,6 +100,13 @@ async function register(page, request, role, email) {
   await page
     .getByRole("button", { name: "Tạo tài khoản →", exact: true })
     .click();
+  if (role === "PARENT") {
+    // Parents need no verification: registering signs them straight in.
+    await expect(
+      page.getByRole("button", { name: "Đăng xuất", exact: true }),
+    ).toBeVisible();
+    return;
+  }
   await expect(
     page.getByRole("heading", { name: "Xác minh tài khoản", exact: true }),
   ).toBeVisible();
@@ -137,8 +144,11 @@ test("email, private review, saved interests, trial acceptance and password rese
   await page
     .getByLabel("Phương pháp giảng dạy")
     .fill("Kiên nhẫn, thực hành từng bước.");
-  await page.getByLabel("Thứ 2 tối", { exact: true }).check();
-  await page.getByRole("button", { name: "Lưu bản nháp", exact: true }).click();
+  // A new time slot defaults to Monday 18:00-20:00, which overlaps the parent's "Thứ 2 tối".
+  await page
+    .getByRole("button", { name: "+ Thêm thời gian rảnh", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Lưu hồ sơ", exact: true }).click();
   await page.getByLabel("Tải bằng chứng danh tính").setInputFiles({
     name: "identity.pdf",
     mimeType: "application/pdf",
@@ -367,6 +377,36 @@ test("email, private review, saved interests, trial acceptance and password rese
     .click();
   await login(page, parentEmail, "reset-browser-password-123");
   expect(errors).toEqual([]);
+});
+
+test("parent signs in right after registering and a duplicate email gets sign-in guidance", async ({
+  page,
+  request,
+}, testInfo) => {
+  const email = `solo-parent-${testInfo.project.name}-${Date.now()}@example.test`;
+  await register(page, request, "PARENT", email);
+  await expect(
+    page.getByRole("heading", { name: "Hiểu con hơn, tìm đúng người." }),
+  ).toBeVisible();
+  await logout(page);
+
+  await page.goto("/#/register");
+  await page.getByLabel("Email", { exact: true }).fill(email);
+  await page.getByLabel("Họ và tên").fill("Người đăng ký lại");
+  await page.getByLabel("Số điện thoại").fill("+84900000000");
+  await page.getByLabel("Bạn tham gia với vai trò").selectOption("PARENT");
+  await page
+    .getByLabel("Mật khẩu (12–72 ký tự)", { exact: true })
+    .fill("another-password-123");
+  await page
+    .getByRole("button", { name: "Tạo tài khoản →", exact: true })
+    .click();
+  await expect(page.getByRole("alert")).toContainText("đã có tài khoản");
+  await expect(
+    page.getByRole("button", { name: "Đăng xuất", exact: true }),
+  ).toHaveCount(0);
+  // The original password still works; the new one never did.
+  await login(page, email);
 });
 
 test("role guards and network failures provide a usable recovery path", async ({

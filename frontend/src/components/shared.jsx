@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { describeSlot, sortSlots } from "../lib/schedule";
 
 export function Field({ label, children }) {
   return (
@@ -81,16 +82,7 @@ export function Schedule({ value, onChange }) {
 }
 
 export function Availability({ slots = [] }) {
-  return (
-    <span>
-      {slots
-        .map((slot) => {
-          const [day, time] = slot.split("_");
-          return `${day === "7" ? "CN" : `T${Number(day) + 1}`} ${{ AM: "sáng", PM: "chiều", EVENING: "tối" }[time]}`;
-        })
-        .join(" · ")}
-    </span>
-  );
+  return <span>{sortSlots(slots).map(describeSlot).join(" · ")}</span>;
 }
 
 export function Avatar({ name, photo, large = false }) {

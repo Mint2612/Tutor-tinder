@@ -65,11 +65,9 @@ public class TutorService {
     distinct(t.subjects());
     distinct(t.grades());
     distinct(t.modes());
-    distinct(t.availability());
-    require(
-        t.photoUrl().isBlank() || t.photoUrl().matches("https://[^\\s]+"),
-        400,
-        "Ảnh cần dùng đường dẫn HTTPS");
+    availability(t.availability());
+    // t.photoUrl() is accepted for compatibility but ignored: the photo is uploaded through
+    // AvatarService, so a profile save can neither set an arbitrary external image nor wipe it.
     var old = tutors.lockByUser(user);
     String id = old.map(TutorProfile::id).orElseGet(() -> UUID.randomUUID().toString());
     tutors.save(id, user, t, old.isEmpty());

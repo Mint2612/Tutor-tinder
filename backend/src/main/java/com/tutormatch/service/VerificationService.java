@@ -4,6 +4,7 @@ import static com.tutormatch.exception.BusinessException.require;
 
 import com.tutormatch.dto.profile.TutorResponse;
 import com.tutormatch.dto.verification.*;
+import com.tutormatch.integration.storage.FileStorage;
 import com.tutormatch.mapper.TutorMapper;
 import com.tutormatch.model.*;
 import com.tutormatch.repository.VerificationRepository;
@@ -16,12 +17,17 @@ public class VerificationService {
   private final TutorService tutors;
   private final VerificationRepository verification;
   private final TutorMapper mapper;
+  private final FileStorage storage;
 
   public VerificationService(
-      TutorService tutors, VerificationRepository verification, TutorMapper mapper) {
+      TutorService tutors,
+      VerificationRepository verification,
+      TutorMapper mapper,
+      FileStorage storage) {
     this.tutors = tutors;
     this.verification = verification;
     this.mapper = mapper;
+    this.storage = storage;
   }
 
   public List<DocumentResponse> documents(String user) {
@@ -31,7 +37,6 @@ public class VerificationService {
   @Transactional
   public String upload(String user, String originalName, String type, byte[] bytes) {
     var t = tutors.lockOwn(user);
-    editable(t);
     require(bytes.length > 0 && bytes.length <= 5 * 1024 * 1024, 400, "Giấy tờ tối đa 5 MB");
     require(
         verification.documentCount(t.id()) < 5,
@@ -67,15 +72,26 @@ public class VerificationService {
     if (filename.isBlank()) filename = "document";
     filename = filename.substring(0, Math.min(200, filename.length()));
     String id = UUID.randomUUID().toString();
-    verification.upload(id, t.id(), filename, type, bytes, t.revision());
+    reopenForEvidenceChange(t);
+    // Identity evidence goes to the private bucket; the database keeps only metadata and the key.
+    String key = t.id() + "/" + id;
+    storage.put(FileStorage.EVIDENCE, key, bytes, type);
+    try {
+      verification.upload(id, t.id(), filename, type, key, t.revision());
+    } catch (RuntimeException e) {
+      storage.delete(FileStorage.EVIDENCE, key);
+      throw e;
+    }
     return id;
   }
 
   @Transactional
   public void remove(String user, String document) {
     var t = tutors.lockOwn(user);
-    editable(t);
+    String key = verification.storageKey(document, t.id()).orElse(null);
     require(verification.remove(document, t.id()) == 1, 404, "Không tìm thấy giấy tờ");
+    reopenForEvidenceChange(t);
+    if (key != null) AfterCommit.run(() -> storage.delete(FileStorage.EVIDENCE, key));
   }
 
   @Transactional
@@ -109,8 +125,18 @@ public class VerificationService {
                 () ->
                     new com.tutormatch.exception.BusinessException(404, "Không tìm thấy giấy tờ"));
     tutors.lock(d.tutorId());
+    byte[] bytes = d.content();
+    if (bytes == null)
+      bytes =
+          storage
+              .get(FileStorage.EVIDENCE, d.storageKey())
+              .orElseThrow(
+                  () -> new com.tutormatch.exception.BusinessException(404, "Không tìm thấy giấy tờ"))
+              .content();
+    // Only a file that was really handed to the admin counts as "opened" for the approval rule.
     verification.recordRead(id, admin, d.tutorId());
-    return d;
+    return new DocumentContent(
+        d.id(), d.tutorId(), d.filename(), d.contentType(), bytes, d.storageKey());
   }
 
   @Transactional
@@ -132,10 +158,21 @@ public class VerificationService {
     require(verification.visibility(id, visible) == 1, 404, "Không tìm thấy gia sư");
   }
 
+  /** Submitting is only possible from a draft or after a rejection. */
   private void editable(TutorProfile t) {
     require(
         Set.of("DRAFT", "REJECTED").contains(t.workflowState()),
         409,
-        "Chỉ có thể sửa giấy tờ khi hồ sơ ở bản nháp hoặc bị từ chối");
+        "Chỉ có thể gửi duyệt khi hồ sơ ở bản nháp hoặc bị từ chối");
+  }
+
+  /**
+   * Evidence is the only thing an admin reviews. Changing it while a submission is pending or the
+   * profile is approved withdraws that decision until the evidence is submitted again; a rejected
+   * profile stays rejected (with its reason) until the tutor resubmits.
+   */
+  private void reopenForEvidenceChange(TutorProfile t) {
+    if (Set.of("APPROVED", "PENDING_REVIEW").contains(t.workflowState()))
+      verification.reopen(t.id());
   }
 }

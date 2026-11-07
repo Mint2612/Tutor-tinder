@@ -1,13 +1,16 @@
 import { useState } from "react";
-import { Field, Choices, Schedule } from "../../components/shared";
+import { Field, Choices } from "../../components/shared";
+import { TimeSlots } from "../../components/TimeSlots";
 import { subjects, styles, blankTutor } from "../../lib/constants";
+import { parseSlot, toToken, slotProblems } from "../../lib/schedule";
 
 export function TutorForm({ initial, save, busy }) {
   const [form, setForm] = useState(
     initial
       ? {
           displayName: initial.display_name,
-          photoUrl: initial.photo_url,
+          // Kept only so the request stays valid; the photo is changed by uploading, not here.
+          photoUrl: initial.photo_url ?? "",
           subjects: initial.subjects,
           grades: initial.grades,
           modes: initial.modes,
@@ -16,8 +19,10 @@ export function TutorForm({ initial, save, busy }) {
           methodology: initial.teaching_description,
           style: initial.teaching_style,
           background: initial.background || "",
+          achievements: initial.achievements || "",
           experience: initial.experience_years,
-          availability: initial.availability,
+          // Rows { day, start, end }; older coarse blocks open as their equivalent time range.
+          availability: initial.availability.map(parseSlot),
         }
       : blankTutor,
   );
@@ -37,11 +42,17 @@ export function TutorForm({ initial, save, busy }) {
           )
         ) {
           setValidationError(
-            "Vui lòng chọn môn, lớp, hình thức và ít nhất một buổi có thể dạy.",
+            "Vui lòng chọn môn, lớp, hình thức và thêm ít nhất một khung giờ rảnh.",
           );
           return;
         }
-        save(form);
+        if (slotProblems(form.availability).some(Boolean)) {
+          setValidationError(
+            "Hãy sửa các khung giờ rảnh được đánh dấu bên dưới.",
+          );
+          return;
+        }
+        save({ ...form, availability: form.availability.map(toToken) });
       }}
     >
       <h2>Hồ sơ giảng dạy</h2>
@@ -51,12 +62,12 @@ export function TutorForm({ initial, save, busy }) {
         </div>
       )}
       <p className="muted">
-        Mọi thay đổi sẽ đưa hồ sơ về bản nháp và cần gửi duyệt lại.
+        Thông tin và ảnh sửa được ngay, không cần duyệt lại. Chỉ minh chứng
+        (bằng cấp, giấy tờ) do quản trị viên duyệt.
       </p>
       <div className="form-grid">
         {[
           ["displayName", "Tên hiển thị", "text", 120],
-          ["photoUrl", "Đường dẫn ảnh công khai HTTPS (tùy chọn)", "url", 500],
           ["province", "Tỉnh / thành phố", "text", 100],
           ["hourlyRate", "Học phí mỗi giờ (đ)", "number"],
           ["experience", "Số năm kinh nghiệm", "number"],
@@ -64,7 +75,7 @@ export function TutorForm({ initial, save, busy }) {
           <Field key={key} label={label}>
             <input
               type={type}
-              required={key !== "photoUrl"}
+              required
               min={key === "hourlyRate" ? 1 : 0}
               max={key === "experience" ? 60 : 10000000}
               maxLength={max}
@@ -129,11 +140,23 @@ export function TutorForm({ initial, save, busy }) {
           onChange={(e) => set("methodology", e.target.value)}
         />
       </Field>
-      <Schedule
+      <Field label="Học lực, giải thưởng (tự khai, tùy chọn)">
+        <textarea
+          maxLength={1000}
+          rows={3}
+          value={form.achievements}
+          onChange={(e) => set("achievements", e.target.value)}
+        />
+      </Field>
+      <p className="muted">
+        Phụ huynh thấy mục này với nhãn “Tự khai” (chưa xác minh). Nó không được
+        dùng để xếp hạng gia sư.
+      </p>
+      <TimeSlots
         value={form.availability}
         onChange={(v) => set("availability", v)}
       />
-      <button disabled={busy}>Lưu bản nháp</button>
+      <button disabled={busy}>Lưu hồ sơ</button>
     </form>
   );
 }

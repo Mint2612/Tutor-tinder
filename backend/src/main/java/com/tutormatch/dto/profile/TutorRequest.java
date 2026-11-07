@@ -16,4 +16,5 @@ public record TutorRequest(
     @NotBlank @Size(max = 3000) String background,
     @Min(0) @Max(60) int experience,
     @NotEmpty @Size(max = 28)
-        List<@NotNull @Pattern(regexp = "[1-7]_(AM|PM|EVENING)") String> availability) {}
+        List<@NotNull @Pattern(regexp = Slots.PATTERN) String> availability,
+    @Size(max = 1000) String achievements) {}

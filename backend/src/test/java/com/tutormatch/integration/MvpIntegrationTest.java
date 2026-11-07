@@ -12,6 +12,7 @@ import com.tutormatch.dto.profile.StudentRequest;
 import com.tutormatch.dto.profile.TutorRequest;
 import com.tutormatch.integration.ai.LlmRanker;
 import com.tutormatch.integration.delivery.DeliveryGateway;
+import com.tutormatch.integration.storage.FileStorage;
 import com.tutormatch.model.Account;
 import com.tutormatch.security.Tokens;
 import com.tutormatch.service.RecommendationService;
@@ -44,14 +45,37 @@ class MvpIntegrationTest {
   @Autowired PasswordEncoder encoder;
   @MockitoBean DeliveryGateway delivery;
   @MockitoBean LlmRanker llm;
+  @MockitoBean FileStorage storage;
   static final JsonMapper JSON = JsonMapper.builder().build();
   Account parent, other, tutor, admin;
   String tutorId, studentId;
   final Map<String, List<String>> sent = new ConcurrentHashMap<>();
+  /** In-memory stand-in for the object store, keyed "bucket/key". */
+  final Map<String, FileStorage.StoredFile> objects = new ConcurrentHashMap<>();
 
   @BeforeEach
   void setup() throws Exception {
     db.update("DELETE FROM auth_throttles");
+    doAnswer(
+            inv -> {
+              objects.put(
+                  inv.getArgument(0) + "/" + inv.getArgument(1),
+                  new FileStorage.StoredFile(inv.getArgument(2), inv.getArgument(3)));
+              return null;
+            })
+        .when(storage)
+        .put(anyString(), anyString(), any(byte[].class), anyString());
+    when(storage.get(anyString(), anyString()))
+        .thenAnswer(
+            inv ->
+                Optional.ofNullable(objects.get(inv.getArgument(0) + "/" + inv.getArgument(1))));
+    doAnswer(
+            inv -> {
+              objects.remove(inv.getArgument(0) + "/" + inv.getArgument(1));
+              return null;
+            })
+        .when(storage)
+        .delete(anyString(), anyString());
     doAnswer(
             inv -> {
               sent.put(inv.getArgument(0), List.of(inv.getArgument(2), inv.getArgument(3)));
@@ -109,7 +133,8 @@ class MvpIntegrationTest {
         "Kiên nhẫn",
         "Đại học, giảng dạy",
         4,
-        List.of("1_EVENING"));
+        List.of("1_EVENING"),
+        null);
   }
 
   org.springframework.test.web.servlet.request.RequestPostProcessor as(Account u) {
@@ -130,11 +155,11 @@ class MvpIntegrationTest {
   }
 
   @Test
-  void authenticationRequiresEmailOnlyAndSessionsExpire() throws Exception {
+  void tutorActivationRequiresEmailOnlyAndSessionsExpire() throws Exception {
     String email = UUID.randomUUID() + "@example.test";
     var registration =
         new AuthRequests.Registration(
-            email, "secure-password-123", "Phụ huynh", "+84909876543", "PARENT");
+            email, "secure-password-123", "Gia sư", "+84909876543", "TUTOR");
     mvc.perform(
             post("/api/auth/register")
                 .with(csrf())
@@ -157,12 +182,93 @@ class MvpIntegrationTest {
     assertTrue(cookie.isHttpOnly());
     mvc.perform(get("/api/auth/me").cookie(cookie))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.role").value("PARENT"));
+        .andExpect(jsonPath("$.role").value("TUTOR"));
     db.update(
         "UPDATE auth_sessions SET expires_at=TIMESTAMPADD(HOUR,-1,CURRENT_TIMESTAMP) WHERE"
             + " token_hash=?",
         Tokens.hash(cookie.getValue()));
     mvc.perform(get("/api/auth/me").cookie(cookie)).andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void parentNeedsNoVerificationAndCanSignInRightAfterRegistering() throws Exception {
+    String email = UUID.randomUUID() + "@example.test";
+    var registration =
+        new AuthRequests.Registration(
+            email, "secure-password-123", "Phụ huynh", "+84909876543", "PARENT");
+    mvc.perform(
+            post("/api/auth/register")
+                .with(csrf())
+                .contentType("application/json")
+                .content(body(registration)))
+        .andExpect(status().isOk());
+    assertTrue(sent.isEmpty(), "a parent registration must not send any verification message");
+    String login = body(Map.of("email", email, "password", "secure-password-123"));
+    var result =
+        mvc.perform(
+                post("/api/auth/login").with(csrf()).contentType("application/json").content(login))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.role").value("PARENT"))
+            .andReturn();
+    var cookie = result.getResponse().getCookie("TM_SESSION");
+    assertNotNull(cookie);
+    mvc.perform(get("/api/auth/me").cookie(cookie))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.role").value("PARENT"));
+    // The account is usable for parent work straight away.
+    mvc.perform(get("/api/students").cookie(cookie))
+        .andExpect(status().isOk())
+        .andExpect(content().json("[]"));
+  }
+
+  @Test
+  void duplicateParentEmailIsRejectedWithGuidanceAndLeavesTheAccountUntouched() throws Exception {
+    String email = UUID.randomUUID() + "@example.test";
+    String register =
+        body(
+            new AuthRequests.Registration(
+                email, "original-password-123", "Phụ huynh", "+84909876543", "PARENT"));
+    mvc.perform(
+            post("/api/auth/register")
+                .with(csrf())
+                .contentType("application/json")
+                .content(register))
+        .andExpect(status().isOk());
+    String again =
+        body(
+            new AuthRequests.Registration(
+                email, "attacker-password-123", "Người khác", "+84900000000", "PARENT"));
+    mvc.perform(
+            post("/api/auth/register")
+                .with(csrf())
+                .contentType("application/json")
+                .content(again))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("đăng nhập")));
+    // A tutor registration for an existing email keeps the generic, non-revealing answer.
+    mvc.perform(
+            post("/api/auth/register")
+                .with(csrf())
+                .contentType("application/json")
+                .content(
+                    body(
+                        new AuthRequests.Registration(
+                            email, "attacker-password-123", "Gia sư", "+84900000000", "TUTOR"))))
+        .andExpect(status().isOk());
+    assertTrue(sent.isEmpty(), "no message may be sent for a duplicate registration");
+    mvc.perform(
+            post("/api/auth/login")
+                .with(csrf())
+                .contentType("application/json")
+                .content(body(Map.of("email", email, "password", "attacker-password-123"))))
+        .andExpect(status().isUnauthorized());
+    mvc.perform(
+            post("/api/auth/login")
+                .with(csrf())
+                .contentType("application/json")
+                .content(body(Map.of("email", email, "password", "original-password-123"))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.role").value("PARENT"));
   }
 
   void verifyCode(String channel) throws Exception {
@@ -246,7 +352,18 @@ class MvpIntegrationTest {
         .andExpect(header().string("Cache-Control", "no-store"));
     mvc.perform(approve).andExpect(status().isOk());
     mvc.perform(get("/api/tutors/" + tutorId).with(as(parent))).andExpect(status().isOk());
+    // Editing information keeps the approval: only the evidence is reviewed.
     tutors.save(tutor.id(), teaching());
+    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent))).andExpect(status().isOk());
+    // New evidence withdraws it until the tutor submits again and an admin reads it.
+    mvc.perform(
+            multipart("/api/tutor/documents")
+                .file(
+                    new MockMultipartFile(
+                        "file", "second.pdf", "application/pdf", "%PDF-1.4 second".getBytes()))
+                .with(as(tutor))
+                .with(csrf()))
+        .andExpect(status().isOk());
     mvc.perform(get("/api/tutors/" + tutorId).with(as(parent))).andExpect(status().isNotFound());
     mvc.perform(post("/api/tutor/submit").with(as(tutor)).with(csrf())).andExpect(status().isOk());
     mvc.perform(approve).andExpect(status().isBadRequest());
@@ -708,5 +825,346 @@ class MvpIntegrationTest {
               assertEquals(200, result.get(5, java.util.concurrent.TimeUnit.SECONDS));
           }
         });
+  }
+
+  /** Grey keeps even the 30-megapixel decompression-bomb fixture at 30 MB of heap. */
+  byte[] png(int width, int height) throws Exception {
+    var image =
+        new java.awt.image.BufferedImage(width, height, java.awt.image.BufferedImage.TYPE_BYTE_GRAY);
+    var out = new java.io.ByteArrayOutputStream();
+    javax.imageio.ImageIO.write(image, "png", out);
+    return out.toByteArray();
+  }
+
+  RequestBuilder photo(byte[] bytes, String type) {
+    return multipart("/api/tutor/photo")
+        .file(new MockMultipartFile("file", "avatar", type, bytes))
+        .with(as(tutor))
+        .with(csrf());
+  }
+
+  @Test
+  void avatarIsStoredAsNormalisedJpegServedByTheApiAndKeepsAnApprovedProfileApproved()
+      throws Exception {
+    approveFixture();
+    assertEquals("APPROVED", tutors.own(tutor.id()).workflowState());
+    String url =
+        JSON.readTree(
+                mvc.perform(photo(png(1200, 800), "image/png"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.workflow_state").value("APPROVED"))
+                    .andReturn()
+                    .getResponse()
+                    .getContentAsString())
+            .path("photo_url")
+            .asText();
+    assertTrue(url.startsWith("/api/media/avatars/") && url.endsWith(".jpg"), url);
+    String name = url.substring("/api/media/avatars/".length());
+    var stored = objects.get("avatars/" + name);
+    assertNotNull(stored, "the photo must be written to the avatars bucket");
+    assertEquals("image/jpeg", stored.contentType());
+    var image = javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(stored.content()));
+    assertEquals(512, image.getWidth());
+    assertEquals(341, image.getHeight());
+    // Signed-in users can fetch it; anonymous callers cannot.
+    mvc.perform(get(url)).andExpect(status().isUnauthorized());
+    mvc.perform(get(url).with(as(parent)))
+        .andExpect(status().isOk())
+        .andExpect(content().contentType("image/jpeg"))
+        .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("immutable")))
+        .andExpect(header().string("X-Content-Type-Options", "nosniff"));
+    mvc.perform(get("/api/media/avatars/not-a-uuid.jpg").with(as(parent)))
+        .andExpect(status().isNotFound());
+    mvc.perform(get("/api/media/avatars/00000000-0000-0000-0000-000000000000.jpg").with(as(parent)))
+        .andExpect(status().isNotFound());
+
+    // Replacing the photo discards the old object; removing it clears the reference.
+    String second =
+        JSON.readTree(
+                mvc.perform(photo(png(300, 300), "image/png"))
+                    .andExpect(status().isOk())
+                    .andReturn()
+                    .getResponse()
+                    .getContentAsString())
+            .path("photo_url")
+            .asText();
+    assertNotEquals(url, second);
+    assertFalse(objects.containsKey("avatars/" + name), "the replaced photo must be deleted");
+    assertEquals(1, objects.keySet().stream().filter(k -> k.startsWith("avatars/")).count());
+    mvc.perform(delete("/api/tutor/photo").with(as(tutor)).with(csrf()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.photo_url").value(""));
+    assertTrue(objects.keySet().stream().noneMatch(k -> k.startsWith("avatars/")));
+  }
+
+  @Test
+  void avatarUploadRejectsNonImagesOversizedFilesDecompressionBombsAndOtherRoles()
+      throws Exception {
+    mvc.perform(photo("GIF89a-not-allowed".getBytes(), "image/jpeg")).andExpect(status().isBadRequest());
+    mvc.perform(photo("plain text".getBytes(), "image/png")).andExpect(status().isBadRequest());
+    byte[] truncated = png(200, 200);
+    mvc.perform(photo(Arrays.copyOf(truncated, 40), "image/png")).andExpect(status().isBadRequest());
+    byte[] big = new byte[2 * 1024 * 1024 + 1];
+    big[0] = (byte) 0xFF;
+    big[1] = (byte) 0xD8;
+    big[2] = (byte) 0xFF;
+    mvc.perform(photo(big, "image/jpeg")).andExpect(status().isBadRequest());
+    // 30 megapixels compress to a tiny PNG; it must be refused before it is decoded.
+    mvc.perform(photo(png(6000, 5000), "image/png")).andExpect(status().isBadRequest());
+    mvc.perform(
+            multipart("/api/tutor/photo")
+                .file(new MockMultipartFile("file", "a.png", "image/png", png(10, 10)))
+                .with(as(parent))
+                .with(csrf()))
+        .andExpect(status().isForbidden());
+    assertTrue(objects.isEmpty(), "rejected uploads must leave nothing in storage");
+    assertEquals("", tutors.own(tutor.id()).photoUrl());
+  }
+
+  @Test
+  void profileSaveCanNeitherSetAnExternalPhotoNorWipeTheUploadedOne() throws Exception {
+    mvc.perform(photo(png(100, 100), "image/png")).andExpect(status().isOk());
+    String uploaded = tutors.own(tutor.id()).photoUrl();
+    var request = JSON.readValue(body(teaching()), Map.class);
+    request.put("photoUrl", "https://tracker.example/pixel.png");
+    mvc.perform(
+            put("/api/tutor/profile")
+                .with(as(tutor))
+                .with(csrf())
+                .contentType("application/json")
+                .content(body(request)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.photo_url").value(uploaded));
+    request.put("photoUrl", "");
+    mvc.perform(
+            put("/api/tutor/profile")
+                .with(as(tutor))
+                .with(csrf())
+                .contentType("application/json")
+                .content(body(request)))
+        .andExpect(status().isOk());
+    assertEquals(uploaded, tutors.own(tutor.id()).photoUrl());
+  }
+
+  @Test
+  void achievementsAreSelfDeclaredLimitedAndShownToParentsOnceApproved() throws Exception {
+    var request = JSON.readValue(body(teaching()), Map.class);
+    request.put("achievements", "Giải Nhì Toán cấp tỉnh, GPA 3.6/4");
+    mvc.perform(
+            put("/api/tutor/profile")
+                .with(as(tutor))
+                .with(csrf())
+                .contentType("application/json")
+                .content(body(request)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.achievements").value("Giải Nhì Toán cấp tỉnh, GPA 3.6/4"));
+    approveFixture();
+    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.achievements").value("Giải Nhì Toán cấp tỉnh, GPA 3.6/4"));
+    request.put("achievements", "x".repeat(1001));
+    mvc.perform(
+            put("/api/tutor/profile")
+                .with(as(tutor))
+                .with(csrf())
+                .contentType("application/json")
+                .content(body(request)))
+        .andExpect(status().isBadRequest());
+    request.put("achievements", "   ");
+    mvc.perform(
+            put("/api/tutor/profile")
+                .with(as(tutor))
+                .with(csrf())
+                .contentType("application/json")
+                .content(body(request)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.achievements").doesNotExist());
+  }
+
+  @Test
+  void identityEvidenceLivesInPrivateStorageAndLegacyDatabaseFilesStillOpen() throws Exception {
+    byte[] pdf = "%PDF-1.4 evidence fixture".getBytes();
+    String doc =
+        JSON.readTree(
+                mvc.perform(
+                        multipart("/api/tutor/documents")
+                            .file(new MockMultipartFile("file", "id.pdf", "application/pdf", pdf))
+                            .with(as(tutor))
+                            .with(csrf()))
+                    .andExpect(status().isOk())
+                    .andReturn()
+                    .getResponse()
+                    .getContentAsString())
+            .path("id")
+            .asText();
+    String key = db.queryForObject("SELECT storage_key FROM tutor_documents WHERE id=?", String.class, doc);
+    assertNotNull(key);
+    assertNull(db.queryForObject("SELECT content FROM tutor_documents WHERE id=?", byte[].class, doc));
+    assertArrayEquals(pdf, objects.get("evidence/" + key).content());
+    mvc.perform(get("/api/admin/documents/" + doc).with(as(admin)))
+        .andExpect(status().isOk())
+        .andExpect(content().bytes(pdf));
+    mvc.perform(get("/api/admin/documents/" + doc).with(as(parent))).andExpect(status().isForbidden());
+    // A file stored before object storage existed is still read from the database.
+    String legacy = UUID.randomUUID().toString();
+    db.update(
+        "INSERT INTO tutor_documents(id,tutor_id,filename,content_type,content,revision)"
+            + " VALUES(?,?,'old.pdf','application/pdf',?,0)",
+        legacy,
+        tutorId,
+        "%PDF-1.4 legacy".getBytes());
+    mvc.perform(get("/api/admin/documents/" + legacy).with(as(admin)))
+        .andExpect(status().isOk())
+        .andExpect(content().bytes("%PDF-1.4 legacy".getBytes()));
+    // Removing the document deletes its stored object once the database change commits.
+    mvc.perform(delete("/api/tutor/documents/" + doc).with(as(tutor)).with(csrf()))
+        .andExpect(status().isNoContent());
+    assertFalse(objects.containsKey("evidence/" + key));
+  }
+
+  @Test
+  void profileEditsAndPhotoChangesNeverSendAnApprovedTutorBackToReview() throws Exception {
+    approveFixture();
+    var request = JSON.readValue(body(teaching()), Map.class);
+    request.put("displayName", "Tên mới sau khi duyệt");
+    request.put("hourlyRate", 120000);
+    mvc.perform(
+            put("/api/tutor/profile")
+                .with(as(tutor))
+                .with(csrf())
+                .contentType("application/json")
+                .content(body(request)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.workflow_state").value("APPROVED"))
+        .andExpect(jsonPath("$.verification_status").value("APPROVED"));
+    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.display_name").value("Tên mới sau khi duyệt"))
+        .andExpect(jsonPath("$.hourly_rate").value(120000));
+    mvc.perform(photo(png(80, 80), "image/png")).andExpect(status().isOk());
+    mvc.perform(delete("/api/tutor/photo").with(as(tutor)).with(csrf())).andExpect(status().isOk());
+    assertEquals("APPROVED", tutors.own(tutor.id()).workflowState());
+    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent))).andExpect(status().isOk());
+  }
+
+  @Test
+  void evidenceChangesWithdrawApprovalButARejectedProfileStaysRejected() throws Exception {
+    approveFixture();
+    String first = uploadEvidence("a.pdf");
+    assertEquals("DRAFT", tutors.own(tutor.id()).workflowState(), "new evidence withdraws approval");
+    mvc.perform(post("/api/tutor/submit").with(as(tutor)).with(csrf())).andExpect(status().isOk());
+    assertEquals("PENDING_REVIEW", tutors.own(tutor.id()).workflowState());
+    mvc.perform(delete("/api/tutor/documents/" + first).with(as(tutor)).with(csrf()))
+        .andExpect(status().isNoContent());
+    assertEquals("DRAFT", tutors.own(tutor.id()).workflowState(), "removing evidence withdraws a pending submission");
+    mvc.perform(post("/api/tutor/submit").with(as(tutor)).with(csrf())).andExpect(status().isBadRequest());
+    String second = uploadEvidence("b.pdf");
+    mvc.perform(post("/api/tutor/submit").with(as(tutor)).with(csrf())).andExpect(status().isOk());
+    mvc.perform(get("/api/admin/documents/" + second).with(as(admin))).andExpect(status().isOk());
+    mvc.perform(
+            post("/api/admin/tutors/" + tutorId + "/decision")
+                .with(as(admin))
+                .with(csrf())
+                .contentType("application/json")
+                .content(body(Map.of("approve", false, "reason", "Ảnh giấy tờ bị mờ"))))
+        .andExpect(status().isOk());
+    uploadEvidence("c.pdf");
+    var rejected = tutors.own(tutor.id());
+    assertEquals("REJECTED", rejected.workflowState(), "a rejection stays until the tutor resubmits");
+    assertEquals("Ảnh giấy tờ bị mờ", rejected.rejectionReason());
+    mvc.perform(post("/api/tutor/submit").with(as(tutor)).with(csrf())).andExpect(status().isOk());
+    assertEquals("PENDING_REVIEW", tutors.own(tutor.id()).workflowState());
+  }
+
+  String uploadEvidence(String name) throws Exception {
+    return JSON.readTree(
+            mvc.perform(
+                    multipart("/api/tutor/documents")
+                        .file(new MockMultipartFile("file", name, "application/pdf", ("%PDF-1.4 " + name).getBytes()))
+                        .with(as(tutor))
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString())
+        .path("id")
+        .asText();
+  }
+
+  @Test
+  void tutorAvailabilityAcceptsExactRangesAndRejectsBrokenOnes() throws Exception {
+    java.util.function.Function<List<String>, org.springframework.test.web.servlet.ResultActions> save =
+        slots -> {
+          try {
+            var request = JSON.readValue(body(teaching()), Map.class);
+            request.put("availability", slots);
+            return mvc.perform(
+                put("/api/tutor/profile")
+                    .with(as(tutor))
+                    .with(csrf())
+                    .contentType("application/json")
+                    .content(body(request)));
+          } catch (Exception e) {
+            throw new IllegalStateException(e);
+          }
+        };
+    save.apply(List.of("1_18:00-20:30", "3_09:00-11:00", "3_14:00-15:00"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.availability[0]").value("1_18:00-20:30"))
+        .andExpect(jsonPath("$.availability.length()").value(3));
+    // Adjacent ranges and a coarse block next to an exact range are fine.
+    save.apply(List.of("2_18:00-19:00", "2_19:00-20:00")).andExpect(status().isOk());
+    save.apply(List.of("4_EVENING", "4_19:00-20:00")).andExpect(status().isOk());
+    for (List<String> bad :
+        List.of(
+            List.of("1_20:00-18:00"),
+            List.of("1_18:00-18:00"),
+            List.of("1_18:00-18:15"),
+            List.of("1_18:00-20:00", "1_19:00-21:00"),
+            List.of("1_25:00-26:00"),
+            List.of("1_18:00-20:00", "1_18:00-20:00"),
+            List.of("8_09:00-10:00"),
+            List.of("1_9:00-10:00"),
+            List.<String>of()))
+      save.apply(bad).andExpect(status().isBadRequest());
+    assertTrue(tutors.own(tutor.id()).availability().contains("4_19:00-20:00"));
+  }
+
+  @Test
+  void accountNameAndPhoneCanBeUpdatedButNotEmailOrRole() throws Exception {
+    mvc.perform(get("/api/account").with(as(parent)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.email").value(parent.email()))
+        .andExpect(jsonPath("$.phone").value("+84901234567"));
+    mvc.perform(
+            put("/api/account")
+                .with(as(parent))
+                .with(csrf())
+                .contentType("application/json")
+                .content(
+                    "{\"name\":\"Tên mới\",\"phone\":\"+84911111111\",\"email\":\"x@y.test\",\"role\":\"ADMIN\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.name").value("Tên mới"))
+        .andExpect(jsonPath("$.phone").value("+84911111111"))
+        .andExpect(jsonPath("$.email").value(parent.email()))
+        .andExpect(jsonPath("$.role").value("PARENT"));
+    for (String bad :
+        List.of(
+            "{\"name\":\"\",\"phone\":\"+84911111111\"}",
+            "{\"name\":\"Tên\",\"phone\":\"0911111111\"}",
+            "{\"name\":\"Tên\"}")) {
+      mvc.perform(
+              put("/api/account")
+                  .with(as(parent))
+                  .with(csrf())
+                  .contentType("application/json")
+                  .content(bad))
+          .andExpect(status().isBadRequest());
+    }
+    mvc.perform(get("/api/account")).andExpect(status().isUnauthorized());
+    // Nobody else's account changes.
+    mvc.perform(get("/api/account").with(as(other)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.phone").value("+84901234567"));
   }
 }

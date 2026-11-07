@@ -51,6 +51,14 @@ export function Auth({
                 body: values,
               });
               if (page === "login") onLogin(result);
+              else if (page === "register" && values.role === "PARENT")
+                // Parents need no verification: sign in straight away with the password just chosen.
+                onLogin(
+                  await api("/auth/login", {
+                    method: "POST",
+                    body: { email: values.email, password: values.password },
+                  }),
+                );
               else {
                 setMessage(result.message);
                 notify(result.message);
@@ -101,6 +109,10 @@ export function Auth({
                   <option value="TUTOR">Gia sư</option>
                 </select>
               </Field>
+              <p className="muted">
+                Phụ huynh dùng được ngay sau khi đăng ký. Gia sư cần xác minh
+                email qua liên kết gửi đến hộp thư.
+              </p>
             </>
           )}
           {["register", "login", "reset"].includes(page) && (

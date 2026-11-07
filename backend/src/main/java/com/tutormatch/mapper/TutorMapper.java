@@ -34,7 +34,8 @@ public class TutorMapper {
         number(row, "revision"),
         text(row, "submission_id"),
         instant(row.get("submitted_at")),
-        instant(row.get("verified_at")));
+        instant(row.get("verified_at")),
+        text(row, "achievements"));
   }
 
   public TutorResponse publicResponse(TutorProfile t) {
@@ -69,6 +70,7 @@ public class TutorMapper {
         t.background(),
         t.experience(),
         t.availability(),
+        t.achievements(),
         t.workflowState(),
         t.verificationStatus(),
         t.verifiedAt(),

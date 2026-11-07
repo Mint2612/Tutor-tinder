@@ -29,6 +29,7 @@ public class VerificationMapper {
         text(r, "tutor_id"),
         text(r, "filename"),
         text(r, "content_type"),
-        (byte[]) r.get("content"));
+        (byte[]) r.get("content"),
+        text(r, "storage_key"));
   }
 }

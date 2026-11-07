@@ -45,7 +45,7 @@ public class StudentService {
     require(s.consent(), 400, "Cần sự đồng ý của phụ huynh trước khi lưu thông tin học sinh");
     require(SUBJECTS.containsAll(s.subjects()), 400, "Môn học không hợp lệ");
     distinct(s.subjects());
-    distinct(s.availability());
+    availability(s.availability());
     if (id == null) {
       id = UUID.randomUUID().toString();
       students.insert(id, parent, s);

@@ -12,6 +12,10 @@ public final class AuthRequests {
       @NotNull @Pattern(regexp = "\\+[1-9][0-9]{7,14}") String phone,
       @NotNull String role) {}
 
+  public record ProfileUpdate(
+      @NotBlank @Size(max = 120) String name,
+      @NotNull @Pattern(regexp = "\\+[1-9][0-9]{7,14}") String phone) {}
+
   public record Login(
       @Email @NotBlank @Size(max = 255) String email, @NotBlank @Size(max = 72) String password) {}
 

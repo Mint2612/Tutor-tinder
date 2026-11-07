@@ -569,6 +569,121 @@ legend {
   width: 100%;
   font-size: 12px;
 }
+.time-slots {
+  list-style: none;
+  margin: 14px 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.time-slot {
+  display: grid;
+  grid-template-columns: minmax(110px, 1.2fr) minmax(104px, 1fr) auto minmax(104px, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+.time-slot select,
+.time-slot input {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  background: #fbfcfd;
+  color: #1c3850;
+  border: 1px solid #dbe4ea;
+  border-radius: 9px;
+}
+.time-slot .small {
+  padding: 10px 14px;
+}
+.field-error {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 11px;
+  color: #ad6855;
+}
+@media (max-width: 560px) {
+  .time-slot {
+    grid-template-columns: 1fr 1fr;
+  }
+  .time-slot select,
+  .time-slot button {
+    grid-column: 1 / -1;
+  }
+  .time-slot span[aria-hidden="true"] {
+    display: none;
+  }
+}
+.profile-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.avatar-box {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.avatar-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.avatar-actions .field {
+  margin: 0;
+}
+.avatar-actions p {
+  margin: 0;
+  font-size: 12px;
+}
+.profile-status p {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #ad6855;
+}
+.badges {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.badge-item {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border: 1px solid #e1e8ed;
+  border-radius: 12px;
+  background: #fbfcfd;
+}
+.badge-item.earned {
+  background: #f1f9f5;
+  border-color: #cfe8dc;
+}
+.badge-item p {
+  margin: 6px 0 0;
+  font-size: 12px;
+}
+.badge-level {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #eef3f5;
+  color: #5b778a;
+  font-size: 12px;
+  font-weight: 700;
+}
+.badge-item.earned .badge-level {
+  background: #087e83;
+  color: white;
+}
 .student p {
   font-size: 13px;
 }

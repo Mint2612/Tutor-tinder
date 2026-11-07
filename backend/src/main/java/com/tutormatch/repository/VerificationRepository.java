@@ -34,16 +34,28 @@ public class VerificationRepository {
   }
 
   public void upload(
-      String id, String tutor, String filename, String type, byte[] content, int revision) {
+      String id, String tutor, String filename, String type, String storageKey, int revision) {
     db.update(
-        "INSERT INTO tutor_documents(id,tutor_id,filename,content_type,content,revision)"
+        "INSERT INTO tutor_documents(id,tutor_id,filename,content_type,storage_key,revision)"
             + " VALUES(?,?,?,?,?,?)",
         id,
         tutor,
         filename,
         type,
-        content,
+        storageKey,
         revision);
+  }
+
+  /** Storage key of a document owned by this tutor; empty for legacy rows kept in the database. */
+  public Optional<String> storageKey(String id, String tutor) {
+    return db
+        .queryForList(
+            "SELECT storage_key FROM tutor_documents WHERE id=? AND tutor_id=? AND storage_key IS NOT NULL",
+            String.class,
+            id,
+            tutor)
+        .stream()
+        .findFirst();
   }
 
   public int remove(String id, String tutor) {
@@ -56,6 +68,15 @@ public class VerificationRepository {
             + " workflow_state='PENDING_REVIEW',verification_status='PENDING',rejection_reason=NULL,submitted_at=CURRENT_TIMESTAMP,submission_id=?"
             + " WHERE id=?",
         submission,
+        tutor);
+  }
+
+  /** Evidence changed after submission/approval: back to draft until it is submitted again. */
+  public void reopen(String tutor) {
+    db.update(
+        "UPDATE tutor_profiles SET"
+            + " workflow_state='DRAFT',verification_status='PENDING',verified_at=NULL,rejection_reason=NULL,submission_id=NULL,submitted_at=NULL"
+            + " WHERE id=?",
         tutor);
   }
 

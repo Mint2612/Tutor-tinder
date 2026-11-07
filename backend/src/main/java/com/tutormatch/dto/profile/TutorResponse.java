@@ -25,6 +25,8 @@ public record TutorResponse(
     String background,
     @JsonProperty("experience_years") int experience,
     List<String> availability,
+    /** Self-declared (verification level 3); shown to parents labelled "Tự khai", never ranked. */
+    String achievements,
     @JsonProperty("workflow_state") String workflowState,
     @JsonProperty("verification_status") String verificationStatus,
     @JsonProperty("verified_at") Instant verifiedAt,

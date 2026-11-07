@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { WorkspaceProvider } from "./WorkspaceProvider";
 import { useWorkspace } from "../hooks/useWorkspace";
 import { api } from "../services/api";
@@ -11,7 +12,7 @@ import { StudentsPage } from "../pages/StudentsPage";
 import { DiscoveryPage } from "../pages/DiscoveryPage";
 import { InterestsPage } from "../pages/InterestsPage";
 import { LessonsPage } from "../pages/LessonsPage";
-import { TutorPage } from "../pages/TutorPage";
+import { ProfilePage } from "../pages/ProfilePage";
 import { AdminPage } from "../pages/AdminPage";
 
 function Workspace() {
@@ -43,6 +44,10 @@ function Workspace() {
     loggedIn,
     logout,
   } = useWorkspace();
+  // Messages sit at the top of the page, but Save buttons are often far below on long forms.
+  useEffect(() => {
+    if (error || notification) window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [error, notification]);
   if (checking)
     return (
       <main className="loading" aria-live="polite">
@@ -130,7 +135,7 @@ function Workspace() {
         {user && page === "discover" && <DiscoveryPage />}
         {user && page === "interests" && <InterestsPage />}
         {user && page === "lessons" && <LessonsPage />}
-        {user && page === "tutor" && <TutorPage />}
+        {user && page === "profile" && <ProfilePage />}
         {user && page === "admin" && <AdminPage />}
       </main>
       <footer>

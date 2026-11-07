@@ -11,7 +11,7 @@ const knownPages = new Set([
   "discover",
   "interests",
   "lessons",
-  "tutor",
+  "profile",
   "admin",
 ]);
 function readRoute() {

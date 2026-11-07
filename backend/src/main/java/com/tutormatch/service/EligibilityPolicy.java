@@ -1,7 +1,6 @@
 package com.tutormatch.service;
 
 import com.tutormatch.model.*;
-import java.util.Collections;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -15,13 +14,14 @@ public class EligibilityPolicy {
         && t.modes().contains(s.mode())
         && (s.mode().equals("ONLINE") || s.province().equalsIgnoreCase(t.province()))
         && t.subjects().containsAll(s.subjects())
-        && !Collections.disjoint(s.availability(), t.availability());
+        && Schedule.coveredSlots(s.availability(), t.availability()) > 0;
   }
 
   public int score(StudentProfile s, TutorProfile t) {
-    long overlap = s.availability().stream().filter(t.availability()::contains).count();
+    // Each slot the family wants that the tutor really covers counts as before (3 points).
+    int covered = Schedule.coveredSlots(s.availability(), t.availability());
     return Math.min(15, t.experience())
-        + (int) overlap * 3
+        + covered * 3
         + (t.hourlyRate() <= s.budget() * 0.8 ? 3 : 0);
   }
 }

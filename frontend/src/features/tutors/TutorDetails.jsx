@@ -17,6 +17,14 @@ export function TutorDetails({ tutor: t }) {
       <p>
         {t.background} · {t.experience_years} năm kinh nghiệm
       </p>
+      {t.achievements && (
+        <>
+          <h3>
+            Học lực & giải thưởng <span className="status">Tự khai</span>
+          </h3>
+          <p>{t.achievements}</p>
+        </>
+      )}
       <h3>Cách tôi giảng dạy</h3>
       <p>{t.teaching_style}</p>
       <p>{t.teaching_description}</p>
