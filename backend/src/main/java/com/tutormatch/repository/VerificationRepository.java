@@ -58,6 +58,35 @@ public class VerificationRepository {
         .findFirst();
   }
 
+  /** Display name of a document owned by this tutor; empty when it is not theirs or not found. */
+  public Optional<String> filename(String id, String tutor) {
+    return db
+        .queryForList(
+            "SELECT filename FROM tutor_documents WHERE id=? AND tutor_id=?",
+            String.class,
+            id,
+            tutor)
+        .stream()
+        .findFirst();
+  }
+
+  public void rename(String id, String tutor, String filename) {
+    db.update(
+        "UPDATE tutor_documents SET filename=? WHERE id=? AND tutor_id=?", filename, id, tutor);
+  }
+
+  /** Swaps the stored file; a legacy database copy is dropped in favour of the new object. */
+  public void replace(String id, String tutor, String type, String storageKey, int revision) {
+    db.update(
+        "UPDATE tutor_documents SET content_type=?,storage_key=?,content=NULL,revision=?"
+            + " WHERE id=? AND tutor_id=?",
+        type,
+        storageKey,
+        revision,
+        id,
+        tutor);
+  }
+
   public int remove(String id, String tutor) {
     return db.update("DELETE FROM tutor_documents WHERE id=? AND tutor_id=?", id, tutor);
   }

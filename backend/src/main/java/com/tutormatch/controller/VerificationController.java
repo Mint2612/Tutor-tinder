@@ -43,6 +43,24 @@ public class VerificationController {
             u.id(), file.getOriginalFilename(), file.getContentType(), file.getBytes()));
   }
 
+  /** Renames a document, replaces its file, or both; either part may be left out. */
+  @PutMapping("/tutor/documents/{id}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void update(
+      @PathVariable String id,
+      @AuthenticationPrincipal Account u,
+      @RequestParam(value = "name", required = false) String name,
+      @RequestParam(value = "file", required = false) MultipartFile file)
+      throws IOException {
+    boolean replacing = file != null && !file.isEmpty();
+    verification.update(
+        u.id(),
+        id,
+        name,
+        replacing ? file.getContentType() : null,
+        replacing ? file.getBytes() : null);
+  }
+
   @DeleteMapping("/tutor/documents/{id}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void remove(@PathVariable String id, @AuthenticationPrincipal Account u) {

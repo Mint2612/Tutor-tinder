@@ -37,36 +37,11 @@ public class VerificationService {
   @Transactional
   public String upload(String user, String originalName, String type, byte[] bytes) {
     var t = tutors.lockOwn(user);
-    require(bytes.length > 0 && bytes.length <= 5 * 1024 * 1024, 400, "Giấy tờ tối đa 5 MB");
+    checkFile(bytes, type);
     require(
         verification.documentCount(t.id()) < 5,
         400,
         "Tối đa 5 giấy tờ. Hãy xóa giấy tờ cũ trước khi thay thế.");
-    boolean pdf =
-        "application/pdf".equals(type)
-            && bytes.length > 4
-            && bytes[0] == '%'
-            && bytes[1] == 'P'
-            && bytes[2] == 'D'
-            && bytes[3] == 'F';
-    boolean png =
-        "image/png".equals(type)
-            && bytes.length > 8
-            && bytes[0] == (byte) 137
-            && bytes[1] == 'P'
-            && bytes[2] == 'N'
-            && bytes[3] == 'G'
-            && bytes[4] == 13
-            && bytes[5] == 10
-            && bytes[6] == 26
-            && bytes[7] == 10;
-    boolean jpg =
-        "image/jpeg".equals(type)
-            && bytes.length > 3
-            && bytes[0] == (byte) 255
-            && bytes[1] == (byte) 216
-            && bytes[2] == (byte) 255;
-    require(pdf || png || jpg, 400, "Chỉ nhận PDF, PNG hoặc JPEG hợp lệ");
     String filename =
         Optional.ofNullable(originalName).orElse("document").replaceAll("[^\\p{L}\\p{N}._ -]", "_");
     if (filename.isBlank()) filename = "document";
@@ -83,6 +58,42 @@ public class VerificationService {
       throw e;
     }
     return id;
+  }
+
+  /**
+   * Edits one of the tutor's own documents: a new display name, a replacement file, or both. A real
+   * change counts as an evidence change (see {@link #reopenForEvidenceChange}); saving the same
+   * name again changes nothing and leaves the current decision alone.
+   */
+  @Transactional
+  public void update(String user, String document, String name, String type, byte[] bytes) {
+    var t = tutors.lockOwn(user);
+    require(name != null || bytes != null, 400, "Không có thay đổi để lưu");
+    String current =
+        verification
+            .filename(document, t.id())
+            .orElseThrow(
+                () -> new com.tutormatch.exception.BusinessException(404, "Không tìm thấy giấy tờ"));
+    String label = name == null ? null : label(name);
+    if (bytes != null) checkFile(bytes, type);
+    boolean renamed = label != null && !label.equals(current);
+    if (bytes == null && !renamed) return;
+    String oldKey = verification.storageKey(document, t.id()).orElse(null);
+    String newKey = null;
+    if (bytes != null) {
+      newKey = t.id() + "/" + UUID.randomUUID();
+      storage.put(FileStorage.EVIDENCE, newKey, bytes, type);
+    }
+    try {
+      reopenForEvidenceChange(t);
+      if (renamed) verification.rename(document, t.id(), label);
+      if (bytes != null) verification.replace(document, t.id(), type, newKey, t.revision());
+    } catch (RuntimeException e) {
+      if (newKey != null) storage.delete(FileStorage.EVIDENCE, newKey);
+      throw e;
+    }
+    if (newKey != null && oldKey != null)
+      AfterCommit.run(() -> storage.delete(FileStorage.EVIDENCE, oldKey));
   }
 
   @Transactional
@@ -156,6 +167,44 @@ public class VerificationService {
 
   public void visibility(String id, boolean visible) {
     require(verification.visibility(id, visible) == 1, 404, "Không tìm thấy gia sư");
+  }
+
+  /** Size limit plus a magic-byte check, so the declared type cannot be a lie. */
+  private static void checkFile(byte[] bytes, String type) {
+    require(bytes.length > 0 && bytes.length <= 5 * 1024 * 1024, 400, "Giấy tờ tối đa 5 MB");
+    boolean pdf =
+        "application/pdf".equals(type)
+            && bytes.length > 4
+            && bytes[0] == '%'
+            && bytes[1] == 'P'
+            && bytes[2] == 'D'
+            && bytes[3] == 'F';
+    boolean png =
+        "image/png".equals(type)
+            && bytes.length > 8
+            && bytes[0] == (byte) 137
+            && bytes[1] == 'P'
+            && bytes[2] == 'N'
+            && bytes[3] == 'G'
+            && bytes[4] == 13
+            && bytes[5] == 10
+            && bytes[6] == 26
+            && bytes[7] == 10;
+    boolean jpg =
+        "image/jpeg".equals(type)
+            && bytes.length > 3
+            && bytes[0] == (byte) 255
+            && bytes[1] == (byte) 216
+            && bytes[2] == (byte) 255;
+    require(pdf || png || jpg, 400, "Chỉ nhận PDF, PNG hoặc JPEG hợp lệ");
+  }
+
+  /** A name the tutor typed for a document: free text, but one tidy line of at most 120 characters. */
+  private static String label(String raw) {
+    String s = raw.replaceAll("\\p{Cntrl}", " ").replaceAll("\\s+", " ").strip();
+    require(!s.isEmpty(), 400, "Tên giấy tờ không được để trống");
+    require(s.length() <= 120, 400, "Tên giấy tờ tối đa 120 ký tự");
+    return s;
   }
 
   /** Submitting is only possible from a draft or after a rejection. */

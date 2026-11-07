@@ -613,6 +613,50 @@ legend {
     display: none;
   }
 }
+.evidence-list {
+  list-style: none;
+  margin: 14px 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.evidence-list > li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #fbfcfd;
+  border: 1px solid #dbe4ea;
+  border-radius: 12px;
+}
+.evidence-name {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.evidence-name strong {
+  overflow-wrap: anywhere;
+}
+.evidence-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.evidence-edit {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+}
+.evidence-edit .evidence-actions {
+  flex-wrap: wrap;
+}
+@media (max-width: 560px) {
+  .evidence-list > li {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
 .profile-head {
   display: flex;
   align-items: center;

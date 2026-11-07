@@ -1076,6 +1076,142 @@ class MvpIntegrationTest {
     assertEquals("PENDING_REVIEW", tutors.own(tutor.id()).workflowState());
   }
 
+  org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder editEvidence(
+      String doc, Account who, String name, MockMultipartFile file) {
+    var request =
+        multipart(org.springframework.http.HttpMethod.PUT, "/api/tutor/documents/" + doc);
+    if (file != null) request.file(file);
+    if (name != null) request.param("name", name);
+    request.with(as(who)).with(csrf());
+    return request;
+  }
+
+  @Test
+  void evidenceCanBeRenamedAndItsFileReplaced() throws Exception {
+    String doc = uploadEvidence("scan.pdf");
+    String oldKey =
+        db.queryForObject("SELECT storage_key FROM tutor_documents WHERE id=?", String.class, doc);
+    mvc.perform(post("/api/tutor/submit").with(as(tutor)).with(csrf())).andExpect(status().isOk());
+
+    // Saving the same name again changes nothing, so the pending submission is left alone.
+    mvc.perform(editEvidence(doc, tutor, "scan.pdf", null)).andExpect(status().isNoContent());
+    assertEquals("PENDING_REVIEW", tutors.own(tutor.id()).workflowState());
+
+    // A real rename is an evidence change: whitespace is tidied, the stored file is untouched.
+    mvc.perform(editEvidence(doc, tutor, "  Bằng cử nhân \t Sư phạm Toán ", null))
+        .andExpect(status().isNoContent());
+    mvc.perform(get("/api/tutor/documents").with(as(tutor)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].filename").value("Bằng cử nhân Sư phạm Toán"));
+    assertEquals("DRAFT", tutors.own(tutor.id()).workflowState());
+    assertEquals(
+        oldKey,
+        db.queryForObject("SELECT storage_key FROM tutor_documents WHERE id=?", String.class, doc));
+    assertTrue(objects.containsKey("evidence/" + oldKey));
+
+    // Replacing the file stores a new object, drops the old one and keeps the name.
+    mvc.perform(post("/api/tutor/submit").with(as(tutor)).with(csrf())).andExpect(status().isOk());
+    byte[] replacement = "%PDF-1.4 replacement".getBytes();
+    mvc.perform(
+            editEvidence(
+                doc,
+                tutor,
+                null,
+                new MockMultipartFile("file", "new.pdf", "application/pdf", replacement)))
+        .andExpect(status().isNoContent());
+    assertEquals("DRAFT", tutors.own(tutor.id()).workflowState());
+    String newKey =
+        db.queryForObject("SELECT storage_key FROM tutor_documents WHERE id=?", String.class, doc);
+    assertNotEquals(oldKey, newKey);
+    assertFalse(objects.containsKey("evidence/" + oldKey));
+    assertArrayEquals(replacement, objects.get("evidence/" + newKey).content());
+    assertEquals(
+        "Bằng cử nhân Sư phạm Toán",
+        db.queryForObject("SELECT filename FROM tutor_documents WHERE id=?", String.class, doc));
+    mvc.perform(post("/api/tutor/submit").with(as(tutor)).with(csrf())).andExpect(status().isOk());
+    mvc.perform(get("/api/admin/documents/" + doc).with(as(admin)))
+        .andExpect(status().isOk())
+        .andExpect(content().bytes(replacement));
+
+    // Both parts at once, and a PNG replacing a PDF changes the declared type.
+    mvc.perform(
+            editEvidence(
+                doc, tutor, "Ảnh bằng", new MockMultipartFile("file", "x.png", "image/png", png(40, 40))))
+        .andExpect(status().isNoContent());
+    mvc.perform(get("/api/tutor/documents").with(as(tutor)))
+        .andExpect(jsonPath("$[0].filename").value("Ảnh bằng"))
+        .andExpect(jsonPath("$[0].content_type").value("image/png"));
+    assertEquals(
+        1, db.queryForObject("SELECT COUNT(*) FROM tutor_documents WHERE tutor_id=?", Integer.class, tutorId));
+  }
+
+  @Test
+  void invalidEvidenceEditsLeaveTheDocumentAndTheDecisionAlone() throws Exception {
+    String doc = uploadEvidence("keep.pdf");
+    String key =
+        db.queryForObject("SELECT storage_key FROM tutor_documents WHERE id=?", String.class, doc);
+    mvc.perform(post("/api/tutor/submit").with(as(tutor)).with(csrf())).andExpect(status().isOk());
+    // Nothing to change, an empty or oversized name, and a file whose bytes contradict its type.
+    mvc.perform(editEvidence(doc, tutor, null, null)).andExpect(status().isBadRequest());
+    mvc.perform(editEvidence(doc, tutor, "   ", null)).andExpect(status().isBadRequest());
+    mvc.perform(editEvidence(doc, tutor, "x".repeat(121), null)).andExpect(status().isBadRequest());
+    mvc.perform(
+            editEvidence(
+                doc,
+                tutor,
+                null,
+                new MockMultipartFile("file", "fake.png", "image/png", "%PDF-1.4 not a png".getBytes())))
+        .andExpect(status().isBadRequest());
+    mvc.perform(
+            editEvidence(
+                doc,
+                tutor,
+                null,
+                new MockMultipartFile("file", "t.txt", "text/plain", "hello".getBytes())))
+        .andExpect(status().isBadRequest());
+    assertEquals("PENDING_REVIEW", tutors.own(tutor.id()).workflowState());
+    assertEquals(
+        "keep.pdf",
+        db.queryForObject("SELECT filename FROM tutor_documents WHERE id=?", String.class, doc));
+    assertEquals(
+        key, db.queryForObject("SELECT storage_key FROM tutor_documents WHERE id=?", String.class, doc));
+    assertEquals(1, objects.keySet().stream().filter(k -> k.startsWith("evidence/")).count());
+
+    // Someone else's document, a missing one, and a non-tutor are all refused.
+    var rival = account("TUTOR");
+    tutors.save(rival.id(), teaching());
+    mvc.perform(editEvidence(doc, rival, "Của tôi", null)).andExpect(status().isNotFound());
+    mvc.perform(editEvidence(UUID.randomUUID().toString(), tutor, "Ma", null))
+        .andExpect(status().isNotFound());
+    mvc.perform(editEvidence(doc, parent, "Phụ huynh", null)).andExpect(status().isForbidden());
+    assertEquals(
+        "keep.pdf",
+        db.queryForObject("SELECT filename FROM tutor_documents WHERE id=?", String.class, doc));
+  }
+
+  @Test
+  void aLegacyDatabaseDocumentMovesToObjectStorageWhenItsFileIsReplaced() throws Exception {
+    String legacy = UUID.randomUUID().toString();
+    db.update(
+        "INSERT INTO tutor_documents(id,tutor_id,filename,content_type,content,revision)"
+            + " VALUES(?,?,'old.pdf','application/pdf',?,0)",
+        legacy,
+        tutorId,
+        "%PDF-1.4 legacy".getBytes());
+    byte[] fresh = "%PDF-1.4 fresh".getBytes();
+    mvc.perform(
+            editEvidence(
+                legacy, tutor, null, new MockMultipartFile("file", "n.pdf", "application/pdf", fresh)))
+        .andExpect(status().isNoContent());
+    String key =
+        db.queryForObject("SELECT storage_key FROM tutor_documents WHERE id=?", String.class, legacy);
+    assertNotNull(key);
+    assertNull(db.queryForObject("SELECT content FROM tutor_documents WHERE id=?", byte[].class, legacy));
+    mvc.perform(get("/api/admin/documents/" + legacy).with(as(admin)))
+        .andExpect(status().isOk())
+        .andExpect(content().bytes(fresh));
+  }
+
   String uploadEvidence(String name) throws Exception {
     return JSON.readTree(
             mvc.perform(
