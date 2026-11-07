@@ -166,8 +166,8 @@ Hồ sơ gia sư là nguồn dữ liệu còn lại cho phần AI và là thứ 
 - Hệ thống phải cho gia sư nhập môn dạy, cấp lớp, kinh nghiệm, hình thức dạy, khu vực, lịch rảnh, học phí.
 - Hệ thống phải có bộ câu hỏi về cách dạy và ô mô tả tự do về phương pháp.
 - Hệ thống phải cho gia sư tải minh chứng (thẻ sinh viên hoặc giấy tờ định danh, và tùy chọn bảng điểm, chứng chỉ, giải thưởng).
-- Hệ thống phải đặt hồ sơ ở trạng thái "Chờ duyệt" sau khi gia sư nộp.
-- Hệ thống phải cho gia sư xem trạng thái xác minh và lý do nếu bị từ chối.
+- Hệ thống phải đặt các minh chứng trong hồ sơ ở trạng thái "Chờ duyệt" sau khi gia sư nộp.
+- Hệ thống phải cho gia sư xem trạng thái xác minh các minh chứng và lý do nếu bị từ chối.
 
 ### Business Rules
 - Hồ sơ cần ít nhất một môn dạy, một cấp lớp và minh chứng cấp 1 trước khi nộp duyệt.
