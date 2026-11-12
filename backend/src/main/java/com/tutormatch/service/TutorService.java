@@ -67,8 +67,12 @@ public class TutorService {
     distinct(t.grades());
     distinct(t.modes());
     availability(t.availability());
-    // t.photoUrl() is accepted for compatibility but ignored: the photo is uploaded through
-    // AvatarService, so a profile save can neither set an arbitrary external image nor wipe it.
+    // Phụ huynh đọc được các trường này qua /api/tutors/{id}: liên hệ chỉ lộ sau khi chấp nhận học thử.
+    noContactInfo(t.methodology(), "Phương pháp giảng dạy");
+    noContactInfo(t.background(), "Học vấn, bằng cấp và kinh nghiệm");
+    noContactInfo(t.style(), "Phong cách giảng dạy");
+    noContactInfo(t.achievements(), "Học lực, giải thưởng");
+    // t.photoUrl() is accepted for compatibility but ignored: ...
     require(tutors.lockActiveOwner(user),404,"Tài khoản gia sư không còn hoạt động.");
     var old = tutors.lockForSave(user);
     String id = old.map(TutorProfile::id).orElseGet(() -> UUID.randomUUID().toString());

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { findContact, contactMessage } from "../../lib/contactInfo";
 import { Field, Choices } from "../../components/shared";
 import { Combobox } from "../../components/Combobox";
 import { TimeSlots } from "../../components/TimeSlots";
@@ -31,6 +32,10 @@ export function TutorForm({ initial, save, busy }) {
       : blankTutor,
   );
   const [validationError, setValidationError] = useState("");
+  // Phụ huynh đọc được các ô này; liên hệ chỉ được chia sẻ sau khi gia sư chấp nhận học thử.
+  const contactProblem = ["methodology", "background", "style", "achievements"]
+    .map((key) => contactMessage(findContact(form[key])))
+    .find(Boolean);
   const set = (key, value) => {
     setValidationError("");
     setForm((f) => ({ ...f, [key]: value }));
@@ -69,6 +74,10 @@ export function TutorForm({ initial, save, busy }) {
           setValidationError(
             "Hãy sửa các khung giờ rảnh được đánh dấu bên dưới.",
           );
+          return;
+        }
+        if (contactProblem) {
+          setValidationError(contactProblem);
           return;
         }
         save({ ...form, availability: form.availability.map(toToken) });
@@ -161,9 +170,14 @@ export function TutorForm({ initial, save, busy }) {
           onChange={(e) => set("achievements", e.target.value)}
         />
       </Field>
+      {contactProblem && (
+        <p className="field-error" role="alert">
+          {contactProblem}
+        </p>
+      )}
       <p className="muted">
         Phụ huynh thấy mục này với nhãn “Tự khai” (chưa xác minh). Nó không được
-        dùng để xếp hạng gia sư.
+        dùng để xếp hạng gia sư. Đừng ghi số điện thoại hoặc email trong các ô mô tả.
       </p>
       <TimeSlots
         value={form.availability}
