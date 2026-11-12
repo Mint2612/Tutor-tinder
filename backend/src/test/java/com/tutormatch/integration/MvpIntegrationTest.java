@@ -116,7 +116,7 @@ class MvpIntegrationTest {
         200000,
         List.of("1_EVENING"),
         "Củng cố kiến thức",
-        Map.of("learning", "practice"),
+        Map.of("goal", "foundation", "learning", "practice", "difficulty", "understanding", "pace", "step_by_step", "support", "feedback", "lesson", "examples"),
         consent);
   }
 
@@ -284,13 +284,17 @@ class MvpIntegrationTest {
   @Test
   void rolesCsrfOwnershipConsentAndAdminRegistrationAreEnforced() throws Exception {
     mvc.perform(get("/api/students")).andExpect(status().isUnauthorized());
-    mvc.perform(get("/api/students").with(as(tutor))).andExpect(status().isForbidden());
+    // Two different 403s: the wrong role, and a missing CSRF token. Each says which one it is.
+    mvc.perform(get("/api/students").with(as(tutor)))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.message").value("Tài khoản của bạn không có quyền thực hiện thao tác này."));
     mvc.perform(
             post("/api/students")
                 .with(as(parent))
                 .contentType("application/json")
                 .content(body(student(true))))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.message").value("Phiên biểu mẫu đã hết hạn hoặc không hợp lệ. Hãy tải lại trang rồi thử lại."));
     mvc.perform(
             post("/api/students")
                 .with(as(parent))
@@ -305,7 +309,19 @@ class MvpIntegrationTest {
                 .contentType("application/json")
                 .content(body(student(true))))
         .andExpect(status().isNotFound());
-    mvc.perform(get("/api/admin/tutors").with(as(parent))).andExpect(status().isForbidden());
+    mvc.perform(get("/api/admin/tutors").with(as(parent)))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.message").value("Tài khoản của bạn không có quyền thực hiện thao tác này."));
+    // A correct token does not make up for the wrong role, and the wrong role is not reported as
+    // an expired form.
+    mvc.perform(
+            post("/api/students")
+                .with(as(tutor))
+                .with(csrf())
+                .contentType("application/json")
+                .content(body(student(true))))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.message").value("Tài khoản của bạn không có quyền thực hiện thao tác này."));
     mvc.perform(
             post("/api/auth/register")
                 .with(csrf())
@@ -352,9 +368,9 @@ class MvpIntegrationTest {
         .andExpect(header().string("Cache-Control", "no-store"));
     mvc.perform(approve).andExpect(status().isOk());
     mvc.perform(get("/api/tutors/" + tutorId).with(as(parent))).andExpect(status().isOk());
-    // Editing information keeps the approval: only the evidence is reviewed.
+    // Saving profile information withdraws approval.
     tutors.save(tutor.id(), teaching());
-    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent))).andExpect(status().isOk());
+    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent))).andExpect(status().isNotFound());
     // New evidence withdraws it until the tutor submits again and an admin reads it.
     mvc.perform(
             multipart("/api/tutor/documents")
@@ -844,7 +860,7 @@ class MvpIntegrationTest {
   }
 
   @Test
-  void avatarIsStoredAsNormalisedJpegServedByTheApiAndKeepsAnApprovedProfileApproved()
+  void avatarIsStoredAsNormalisedJpegAndWithdrawsApproval()
       throws Exception {
     approveFixture();
     assertEquals("APPROVED", tutors.own(tutor.id()).workflowState());
@@ -852,7 +868,7 @@ class MvpIntegrationTest {
         JSON.readTree(
                 mvc.perform(photo(png(1200, 800), "image/png"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.workflow_state").value("APPROVED"))
+                    .andExpect(jsonPath("$.workflow_state").value("DRAFT"))
                     .andReturn()
                     .getResponse()
                     .getContentAsString())
@@ -1023,10 +1039,10 @@ class MvpIntegrationTest {
   }
 
   @Test
-  void profileEditsAndPhotoChangesNeverSendAnApprovedTutorBackToReview() throws Exception {
+  void profileEditsAndPhotoChangesWithdrawApproval() throws Exception {
     approveFixture();
     var request = JSON.readValue(body(teaching()), Map.class);
-    request.put("displayName", "Tên mới sau khi duyệt");
+    request.put("fullName", "Nguyễn Văn Tên Mới");
     request.put("hourlyRate", 120000);
     mvc.perform(
             put("/api/tutor/profile")
@@ -1035,16 +1051,309 @@ class MvpIntegrationTest {
                 .contentType("application/json")
                 .content(body(request)))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.workflow_state").value("APPROVED"))
-        .andExpect(jsonPath("$.verification_status").value("APPROVED"));
+        .andExpect(jsonPath("$.workflow_state").value("DRAFT"))
+        .andExpect(jsonPath("$.verification_status").value("PENDING"))
+        .andExpect(jsonPath("$.full_name").value("Nguyễn Văn Tên Mới"));
+    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent))).andExpect(status().isNotFound());
+    assertTrue(recommendations.recommend(studentId, parent.id()).stream()
+        .noneMatch(r -> r.tutor().id().equals(tutorId)));
+    approveFixture();
+    // Once approved again, parents see the account's display name (not the legal name) and the new rate.
     mvc.perform(get("/api/tutors/" + tutorId).with(as(parent)))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.display_name").value("Tên mới sau khi duyệt"))
+        .andExpect(jsonPath("$.display_name").value("Fixture TUTOR"))
         .andExpect(jsonPath("$.hourly_rate").value(120000));
     mvc.perform(photo(png(80, 80), "image/png")).andExpect(status().isOk());
+    assertEquals("DRAFT", tutors.own(tutor.id()).workflowState());
+    approveFixture();
     mvc.perform(delete("/api/tutor/photo").with(as(tutor)).with(csrf())).andExpect(status().isOk());
-    assertEquals("APPROVED", tutors.own(tutor.id()).workflowState());
-    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent))).andExpect(status().isOk());
+    assertEquals("DRAFT", tutors.own(tutor.id()).workflowState());
+    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent))).andExpect(status().isNotFound());
+  }
+
+  @Test
+  void resubmissionRequiresFreshReadAndDecisionsKeepSubmissionHistory() throws Exception {
+    String doc = uploadEvidence("identity.pdf");
+    mvc.perform(post("/api/tutor/submit").with(as(tutor)).with(csrf())).andExpect(status().isOk());
+    String submission = tutors.own(tutor.id()).submissionId();
+    int revision = tutors.own(tutor.id()).revision();
+    mvc.perform(get("/api/admin/documents/" + doc).with(as(admin))).andExpect(status().isOk());
+    var decision = post("/api/admin/tutors/" + tutorId + "/decision").with(as(admin)).with(csrf())
+        .contentType("application/json").content(body(Map.of("approve", true)));
+    mvc.perform(decision).andExpect(status().isOk());
+    mvc.perform(get("/api/admin/tutors/" + tutorId).with(as(admin)))
+        .andExpect(jsonPath("$.audit[0].submission_id").value(submission))
+        .andExpect(jsonPath("$.audit[0].revision").value(revision));
+    tutors.save(tutor.id(), teaching());
+    assertNull(tutors.own(tutor.id()).submissionId());
+    assertNull(tutors.own(tutor.id()).verifiedAt());
+    mvc.perform(post("/api/tutor/submit").with(as(tutor)).with(csrf())).andExpect(status().isOk());
+    assertNotEquals(submission, tutors.own(tutor.id()).submissionId());
+    mvc.perform(decision).andExpect(status().isBadRequest());
+    var reject = post("/api/admin/tutors/" + tutorId + "/decision").with(as(admin)).with(csrf())
+        .contentType("application/json");
+    mvc.perform(reject.content(body(Map.of("approve", false, "reason", " "))))
+        .andExpect(status().isBadRequest());
+    mvc.perform(reject.content(body(Map.of("approve", false, "reason", "Giấy tờ bị mờ"))))
+        .andExpect(status().isOk());
+    mvc.perform(get("/api/tutor/profile").with(as(tutor)))
+        .andExpect(jsonPath("$.rejection_reason").value("Giấy tờ bị mờ"));
+    assertEquals(2, db.queryForObject("SELECT COUNT(*) FROM verification_audit WHERE tutor_id=?", Integer.class, tutorId));
+  }
+
+  @Test
+  void evidenceRejectsOversizedEmptyFilesAndTooManyDocuments() throws Exception {
+    for (byte[] bytes : List.of(new byte[0], new byte[5 * 1024 * 1024 + 1])) {
+      mvc.perform(multipart("/api/tutor/documents")
+          .file(new MockMultipartFile("file", "identity.pdf", "application/pdf", bytes))
+          .with(as(tutor)).with(csrf())).andExpect(status().isBadRequest());
+    }
+    for (int i = 0; i < 5; i++) uploadEvidence("identity-" + i + ".pdf");
+    mvc.perform(multipart("/api/tutor/documents")
+        .file(new MockMultipartFile("file", "sixth.pdf", "application/pdf", "%PDF-1.4".getBytes()))
+        .with(as(tutor)).with(csrf())).andExpect(status().isBadRequest());
+    assertEquals(5, db.queryForObject("SELECT COUNT(*) FROM tutor_documents WHERE tutor_id=?", Integer.class, tutorId));
+  }
+
+  @Test
+  void theRegistrationNameIsPublicAndTheProfileNameIsALegalNameOnlyAdminsSee() throws Exception {
+    approveFixture();
+    // The tutor's public name is the account's name; the name typed in the profile is the legal one.
+    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.display_name").value("Fixture TUTOR"))
+        .andExpect(jsonPath("$.full_name").doesNotExist());
+    mvc.perform(get("/api/tutor/profile").with(as(tutor)))
+        .andExpect(jsonPath("$.display_name").value("Fixture TUTOR"))
+        .andExpect(jsonPath("$.full_name").value("Gia sư kiểm thử"));
+    mvc.perform(get("/api/admin/tutors/" + tutorId).with(as(admin)))
+        .andExpect(jsonPath("$.display_name").value("Fixture TUTOR"))
+        .andExpect(jsonPath("$.full_name").value("Gia sư kiểm thử"));
+    mvc.perform(get("/api/admin/tutors").with(as(admin)))
+        .andExpect(jsonPath("$[?(@.id=='" + tutorId + "')].full_name").value("Gia sư kiểm thử"));
+    assertFalse(
+        mvc.perform(get("/api/tutors/" + tutorId).with(as(parent)))
+            .andReturn()
+            .getResponse()
+            .getContentAsString()
+            .contains("Gia sư kiểm thử"),
+        "the legal name must never reach a parent");
+
+    // Renaming the account renames the public profile too, and touches neither the legal name nor
+    // the review state.
+    mvc.perform(
+            put("/api/account")
+                .with(as(tutor))
+                .with(csrf())
+                .contentType("application/json")
+                .content(body(Map.of("name", "Cô Hoa Toán", "phone", "+84901234567"))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.name").value("Cô Hoa Toán"));
+    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.display_name").value("Cô Hoa Toán"));
+    mvc.perform(get("/api/tutor/profile").with(as(tutor)))
+        .andExpect(jsonPath("$.display_name").value("Cô Hoa Toán"))
+        .andExpect(jsonPath("$.full_name").value("Gia sư kiểm thử"))
+        .andExpect(jsonPath("$.workflow_state").value("APPROVED"));
+
+    // A profile save cannot choose the public name, even if a client still sends one.
+    var request = JSON.readValue(body(teaching()), Map.class);
+    request.put("displayName", "Tên giả mạo");
+    request.put("fullName", "Trần Thị Thật");
+    mvc.perform(
+            put("/api/tutor/profile")
+                .with(as(tutor))
+                .with(csrf())
+                .contentType("application/json")
+                .content(body(request)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.display_name").value("Cô Hoa Toán"))
+        .andExpect(jsonPath("$.full_name").value("Trần Thị Thật"));
+    request.remove("fullName");
+    mvc.perform(
+            put("/api/tutor/profile")
+                .with(as(tutor))
+                .with(csrf())
+                .contentType("application/json")
+                .content(body(request)))
+        .andExpect(status().isBadRequest());
+    request.put("fullName", "   ");
+    mvc.perform(
+            put("/api/tutor/profile")
+                .with(as(tutor))
+                .with(csrf())
+                .contentType("application/json")
+                .content(body(request)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void aProfileCannotBeSubmittedWithoutALegalName() throws Exception {
+    uploadEvidence("id.pdf");
+    db.update("UPDATE tutor_profiles SET legal_name='' WHERE id=?", tutorId);
+    mvc.perform(post("/api/tutor/submit").with(as(tutor)).with(csrf()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.message").value("Cần nhập họ và tên đúng như giấy tờ trước khi gửi duyệt"));
+    db.update("UPDATE tutor_profiles SET legal_name='Lê Văn A' WHERE id=?", tutorId);
+    mvc.perform(post("/api/tutor/submit").with(as(tutor)).with(csrf())).andExpect(status().isOk());
+    assertEquals("PENDING_REVIEW", tutors.own(tutor.id()).workflowState());
+  }
+
+  @Test
+  void contactDetailsAreRejectedFromTheStudentNeedsText() throws Exception {
+    var request = JSON.readValue(body(student(true)), Map.class);
+    java.util.function.Function<String, org.springframework.test.web.servlet.ResultActions> save =
+        needs -> {
+          try {
+            request.put("needs", needs);
+            return mvc.perform(
+                put("/api/students/" + studentId)
+                    .with(as(parent))
+                    .with(csrf())
+                    .contentType("application/json")
+                    .content(body(request)));
+          } catch (Exception e) {
+            throw new IllegalStateException(e);
+          }
+        };
+    save.apply("Con hay mất tập trung, cần ôn Toán lớp 6. Điểm 8.5, học phí 150.000 - 200.000.")
+        .andExpect(status().isOk());
+    save.apply("Gọi cô theo số 0903 123 456 nhé")
+        .andExpect(status().isBadRequest())
+        .andExpect(
+            jsonPath("$.message")
+                .value(
+                    "Phần “Mục tiêu, khó khăn và điều bạn muốn gia sư hiểu” không được ghi số điện thoại."
+                        + " Thông tin liên hệ chỉ được chia sẻ sau khi gia sư chấp nhận học thử."));
+    save.apply("Liên hệ phụ huynh: phuhuynh@example.com")
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("địa chỉ email")));
+    save.apply("zalo: không chín không ba một hai ba bốn năm sáu")
+        .andExpect(status().isBadRequest());
+    // A rejected save changes nothing; creating a new student is held to the same rule.
+    assertEquals(
+        "Con hay mất tập trung, cần ôn Toán lớp 6. Điểm 8.5, học phí 150.000 - 200.000.",
+        db.queryForObject("SELECT needs FROM student_profiles WHERE id=?", String.class, studentId));
+    request.put("needs", "SĐT 0987654321");
+    mvc.perform(
+            post("/api/students")
+                .with(as(parent))
+                .with(csrf())
+                .contentType("application/json")
+                .content(body(request)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void provincesMustBeFromTheFixedListForTutorsAndStudents() throws Exception {
+    var tutorRequest = JSON.readValue(body(teaching()), Map.class);
+    var studentRequest = JSON.readValue(body(student(true)), Map.class);
+    for (String ok : List.of("Hà Nội", "Hồ Chí Minh", "Đồng Nai", "Huế", " Đà Nẵng ")) {
+      tutorRequest.put("province", ok);
+      mvc.perform(
+              put("/api/tutor/profile")
+                  .with(as(tutor))
+                  .with(csrf())
+                  .contentType("application/json")
+                  .content(body(tutorRequest)))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.province").value(ok.trim()));
+      studentRequest.put("province", ok);
+      mvc.perform(
+              put("/api/students/" + studentId)
+                  .with(as(parent))
+                  .with(csrf())
+                  .contentType("application/json")
+                  .content(body(studentRequest)))
+          .andExpect(status().isOk());
+    }
+    for (String bad : List.of("Hà Nôi", "hà nội", "Bình Dương", "Tỉnh Thử Nghiệm", "Ha Noi", "")) {
+      tutorRequest.put("province", bad);
+      mvc.perform(
+              put("/api/tutor/profile")
+                  .with(as(tutor))
+                  .with(csrf())
+                  .contentType("application/json")
+                  .content(body(tutorRequest)))
+          .andExpect(status().isBadRequest());
+      studentRequest.put("province", bad);
+      mvc.perform(
+              put("/api/students/" + studentId)
+                  .with(as(parent))
+                  .with(csrf())
+                  .contentType("application/json")
+                  .content(body(studentRequest)))
+          .andExpect(status().isBadRequest());
+    }
+    studentRequest.put("province", "Cà Mau");
+    studentRequest.put("mode", "IN_PERSON");
+    mvc.perform(
+            put("/api/students/" + studentId)
+                .with(as(parent))
+                .with(csrf())
+                .contentType("application/json")
+                .content(body(studentRequest)))
+        .andExpect(status().isOk());
+    studentRequest.put("province", "Bình Dương");
+    mvc.perform(
+            post("/api/students")
+                .with(as(parent))
+                .with(csrf())
+                .contentType("application/json")
+                .content(body(studentRequest)))
+        .andExpect(status().isBadRequest())
+        .andExpect(
+            jsonPath("$.message")
+                .value("Tỉnh / thành phố không hợp lệ. Hãy chọn một mục trong danh sách."));
+  }
+
+  @Test
+  void studentsPickExactTimeRangesJustLikeTutors() throws Exception {
+    db.update("UPDATE tutor_profiles SET visible=FALSE");
+    db.update("UPDATE tutor_profiles SET visible=TRUE WHERE id=?", tutorId);
+    approveFixture(); // the fixture tutor is free on Monday evening (18:00-22:00)
+    var request = JSON.readValue(body(student(true)), Map.class);
+    java.util.function.Function<List<String>, org.springframework.test.web.servlet.ResultActions>
+        save =
+            slots -> {
+              try {
+                request.put("availability", slots);
+                return mvc.perform(
+                    put("/api/students/" + studentId)
+                        .with(as(parent))
+                        .with(csrf())
+                        .contentType("application/json")
+                        .content(body(request)));
+              } catch (Exception e) {
+                throw new IllegalStateException(e);
+              }
+            };
+    save.apply(List.of("1_19:00-20:30", "3_09:00-10:00"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.availability[0]").value("1_19:00-20:30"))
+        .andExpect(jsonPath("$.availability.length()").value(2));
+    mvc.perform(get("/api/students/" + studentId + "/recommendations").with(as(parent)))
+        .andExpect(jsonPath("$[0].tutor.id").value(tutorId));
+    // An older coarse block still works next to an exact range.
+    save.apply(List.of("1_EVENING", "3_09:00-10:00")).andExpect(status().isOk());
+    // No time in common with the tutor: not recommended.
+    save.apply(List.of("2_09:00-10:00")).andExpect(status().isOk());
+    mvc.perform(get("/api/students/" + studentId + "/recommendations").with(as(parent)))
+        .andExpect(content().json("[]"));
+    // A parent slot shorter than an hour only needs to be covered whole.
+    save.apply(List.of("1_21:30-22:00")).andExpect(status().isOk());
+    mvc.perform(get("/api/students/" + studentId + "/recommendations").with(as(parent)))
+        .andExpect(jsonPath("$[0].tutor.id").value(tutorId));
+    for (List<String> bad :
+        List.of(
+            List.of("1_20:00-18:00"),
+            List.of("1_18:00-18:15"),
+            List.of("1_19:00-20:30", "1_20:00-21:00"),
+            List.of("1_19:00-20:30", "1_19:00-20:30"),
+            List.of("9_19:00-20:00"),
+            List.<String>of()))
+      save.apply(bad).andExpect(status().isBadRequest());
   }
 
   @Test

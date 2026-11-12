@@ -23,7 +23,7 @@ public class StudentMapper {
         strings(row.get("availability")),
         text(row, "needs"),
         survey(row.get("survey")),
-        instant(row.get("consent_at")));
+        instant(row.get("consent_at")), bool(row, "visible"));
   }
 
   public StudentResponse response(StudentProfile s) {
@@ -38,6 +38,6 @@ public class StudentMapper {
         s.availability(),
         s.needs(),
         s.survey(),
-        s.consentAt());
+        s.consentAt(), s.visible());
   }
 }

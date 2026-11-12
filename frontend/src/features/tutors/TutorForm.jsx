@@ -1,14 +1,18 @@
 import { useState } from "react";
 import { Field, Choices } from "../../components/shared";
+import { Combobox } from "../../components/Combobox";
 import { TimeSlots } from "../../components/TimeSlots";
 import { subjects, styles, blankTutor } from "../../lib/constants";
+import { PROVINCES } from "../../lib/provinces";
 import { parseSlot, toToken, slotProblems } from "../../lib/schedule";
 
 export function TutorForm({ initial, save, busy }) {
   const [form, setForm] = useState(
     initial
       ? {
-          displayName: initial.display_name,
+          // Legal name for the admin's identity check. The public display name is the account's
+          // name (set when registering) and is edited under "Thông tin tài khoản".
+          fullName: initial.full_name ?? "",
           // Kept only so the request stays valid; the photo is changed by uploading, not here.
           photoUrl: initial.photo_url ?? "",
           subjects: initial.subjects,
@@ -31,6 +35,21 @@ export function TutorForm({ initial, save, busy }) {
     setValidationError("");
     setForm((f) => ({ ...f, [key]: value }));
   };
+  const textField = ([key, label, type, max]) => (
+    <Field key={key} label={label}>
+      <input
+        type={type}
+        required
+        min={key === "hourlyRate" ? 1 : 0}
+        max={key === "experience" ? 60 : 10000000}
+        maxLength={max}
+        value={form[key]}
+        onChange={(e) =>
+          set(key, type === "number" ? +e.target.value : e.target.value)
+        }
+      />
+    </Field>
+  );
   return (
     <form
       className="panel form-panel"
@@ -62,30 +81,24 @@ export function TutorForm({ initial, save, busy }) {
         </div>
       )}
       <p className="muted">
-        Thông tin và ảnh sửa được ngay, không cần duyệt lại. Chỉ minh chứng
-        (bằng cấp, giấy tờ) do quản trị viên duyệt.
+        Lưu thay đổi sẽ đưa hồ sơ đã duyệt hoặc đang chờ duyệt về bản nháp: bạn
+        cần gửi duyệt lại để tiếp tục hiện với phụ huynh.
+      </p>
+      <p className="muted">
+        “Họ và tên” chỉ bạn và quản trị viên xem được, dùng để đối chiếu với giấy
+        tờ. Phụ huynh chỉ thấy “Tên hiển thị” trong phần Thông tin tài khoản.
       </p>
       <div className="form-grid">
-        {[
-          ["displayName", "Tên hiển thị", "text", 120],
-          ["province", "Tỉnh / thành phố", "text", 100],
-          ["hourlyRate", "Học phí mỗi giờ (đ)", "number"],
-          ["experience", "Số năm kinh nghiệm", "number"],
-        ].map(([key, label, type, max]) => (
-          <Field key={key} label={label}>
-            <input
-              type={type}
-              required
-              min={key === "hourlyRate" ? 1 : 0}
-              max={key === "experience" ? 60 : 10000000}
-              maxLength={max}
-              value={form[key]}
-              onChange={(e) =>
-                set(key, type === "number" ? +e.target.value : e.target.value)
-              }
-            />
-          </Field>
-        ))}
+        {textField(["fullName", "Họ và tên (đúng như giấy tờ)", "text", 120])}
+        <Combobox
+          label="Tỉnh / thành phố"
+          options={PROVINCES}
+          value={form.province}
+          onChange={(value) => set("province", value)}
+          required
+        />
+        {textField(["hourlyRate", "Học phí mỗi giờ (đ)", "number"])}
+        {textField(["experience", "Số năm kinh nghiệm", "number"])}
         <Field label="Phong cách giảng dạy">
           <select
             value={form.style}

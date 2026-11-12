@@ -58,7 +58,7 @@ async function logout(page) {
   ).toHaveCount(0);
 }
 async function swipeRight(page, mobile) {
-  const visual = page.locator(".tutor-card .card-visual");
+  const visual = page.locator(".matching-card h2");
   await visual.scrollIntoViewIfNeeded();
   const box = await visual.boundingBox();
   const x = box.x + box.width / 2,
@@ -86,12 +86,16 @@ async function swipeRight(page, mobile) {
     await page.mouse.up();
   }
 }
-async function register(page, request, role, email) {
+async function register(page, request, role, email, displayName) {
   await page.goto("/#/register");
   await page.getByLabel("Email", { exact: true }).fill(email);
+  // The name typed at registration is the public display name.
   await page
-    .getByLabel("Họ và tên")
-    .fill(role === "PARENT" ? "Phụ huynh kiểm thử" : "Gia sư trình duyệt");
+    .getByLabel("Tên hiển thị")
+    .fill(
+      displayName ??
+        (role === "PARENT" ? "Phụ huynh kiểm thử" : "Gia sư trình duyệt"),
+    );
   await page.getByLabel("Số điện thoại").fill("+84901234567");
   await page.getByLabel("Bạn tham gia với vai trò").selectOption(role);
   await page
@@ -119,7 +123,7 @@ async function register(page, request, role, email) {
   await login(page, email);
 }
 
-test("email, private review, saved interests, trial acceptance and password reset", async ({
+test("matching, profile management, account deletion and password reset", async ({
   page,
   browser,
   request,
@@ -130,13 +134,14 @@ test("email, private review, saved interests, trial acceptance and password rese
   const parentEmail = `parent-${suffix}@example.test`;
   const tutorEmail = `tutor-${suffix}@example.test`;
 
-  await register(page, request, "TUTOR", tutorEmail);
+  await register(page, request, "TUTOR", tutorEmail, `Gia sư ${suffix}`);
   await expect(
     page.getByRole("heading", { name: "Hồ sơ giảng dạy", exact: true }),
   ).toBeVisible();
+  // The profile asks for the legal name (for the admin's identity check), not the display name.
   await page
-    .getByLabel("Tên hiển thị", { exact: true })
-    .fill(`Gia sư ${suffix}`);
+    .getByLabel("Họ và tên (đúng như giấy tờ)", { exact: true })
+    .fill("Nguyễn Văn Kiểm Thử");
   await page.getByLabel("Tỉnh / thành phố", { exact: true }).fill("Hà Nội");
   await page
     .getByLabel("Học vấn, bằng cấp và kinh nghiệm")
@@ -144,7 +149,7 @@ test("email, private review, saved interests, trial acceptance and password rese
   await page
     .getByLabel("Phương pháp giảng dạy")
     .fill("Kiên nhẫn, thực hành từng bước.");
-  // A new time slot defaults to Monday 18:00-20:00, which overlaps the parent's "Thứ 2 tối".
+  // A new time slot defaults to Monday 18:00-20:00, which overlaps the parent's own slot.
   await page
     .getByRole("button", { name: "+ Thêm thời gian rảnh", exact: true })
     .click();
@@ -179,6 +184,10 @@ test("email, private review, saved interests, trial acceptance and password rese
   await card
     .getByRole("button", { name: "Xem hồ sơ & giấy tờ", exact: true })
     .click();
+  // The admin sees the legal name to compare it with the document.
+  await expect(
+    admin.getByText("Họ và tên khai báo (phải trùng giấy tờ):"),
+  ).toContainText("Nguyễn Văn Kiểm Thử");
   await expect(
     admin.getByRole("button", {
       name: "Phê duyệt sau khi kiểm tra",
@@ -194,6 +203,20 @@ test("email, private review, saved interests, trial acceptance and password rese
     .getByRole("button", { name: "Phê duyệt sau khi kiểm tra", exact: true })
     .click();
   await expect(card.getByText("Đã xác minh", { exact: true })).toBeVisible();
+  // A profile change withdraws approval, then the new submission needs a fresh evidence read.
+  await page.getByLabel("Phương pháp giảng dạy").fill("Phương pháp mới cần quản trị viên duyệt lại.");
+  await page.getByRole("button", { name: "Lưu hồ sơ", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Gửi hồ sơ để duyệt", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Gửi hồ sơ để duyệt", exact: true }).click();
+  await expect(page.getByText("Đang chờ duyệt", { exact: true })).toBeVisible();
+  await admin.reload();
+  await card.getByRole("button", { name: "Xem hồ sơ & giấy tờ", exact: true }).click();
+  await expect(admin.getByRole("button", { name: "Phê duyệt sau khi kiểm tra", exact: true })).toBeDisabled();
+  const reread = admin.waitForEvent("download");
+  await admin.getByRole("button", { name: "Tải & xem identity.pdf", exact: true }).click();
+  await reread;
+  await admin.getByRole("button", { name: "Phê duyệt sau khi kiểm tra", exact: true }).click();
+  await expect(card.getByText("Đã xác minh", { exact: true })).toBeVisible();
   await adminContext.close();
 
   await logout(page);
@@ -205,9 +228,14 @@ test("email, private review, saved interests, trial acceptance and password rese
     .getByLabel("Tên gọi của con", { exact: true })
     .fill("Con kiểm thử");
   await page.getByLabel("Tỉnh / thành phố", { exact: true }).fill("Hà Nội");
-  await page
-    .getByLabel("Mục tiêu, khó khăn và điều bạn muốn gia sư hiểu")
-    .fill("Củng cố nền tảng Toán.");
+  const needs = page.getByLabel(
+    "Mục tiêu, khó khăn và điều bạn muốn gia sư hiểu",
+  );
+  // Contact details do not belong in text tutors can read.
+  await needs.fill("Gọi phụ huynh theo số 0903 123 456");
+  await expect(page.getByText("không được ghi số điện thoại")).toBeVisible();
+  await needs.fill("Củng cố nền tảng Toán.");
+  await expect(page.getByText("không được ghi số điện thoại")).toHaveCount(0);
   const selectQuestions = [
     "Mục tiêu học tập chính?",
     "Con tiếp thu tốt nhất khi nào?",
@@ -220,7 +248,10 @@ test("email, private review, saved interests, trial acceptance and password rese
     await page
       .getByLabel(selectQuestions[index], { exact: false })
       .selectOption(value);
-  await page.getByLabel("Thứ 2 tối", { exact: true }).check();
+  // A new time slot defaults to Monday 18:00-20:00, which overlaps the tutor's slot.
+  await page
+    .getByRole("button", { name: "+ Thêm thời gian rảnh", exact: true })
+    .click();
   await page.getByRole("checkbox", { name: /Tôi là phụ huynh/ }).check();
   await page
     .getByRole("button", { name: "Lưu hồ sơ & khảo sát", exact: true })
@@ -229,138 +260,88 @@ test("email, private review, saved interests, trial acceptance and password rese
     page.getByRole("heading", { name: "Con kiểm thử", exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: /Khám phá gia sư cho/ }).click();
-  await expect(page.locator(".tutor-card")).toBeVisible();
-  // Earlier fixtures may remain during local reruns; persisted skips advance through them.
-  for (let i = 0; i < 20; i++) {
-    if (!(await page.locator(".tutor-card").count())) {
-      await page
-        .getByRole("button", { name: "Lấy gợi ý mới", exact: true })
-        .click();
-      await expect(page.locator(".tutor-card")).toBeVisible();
-    }
-    if ((await page.locator(".tutor-card h2").textContent()).includes(suffix))
-      break;
-    await page
-      .getByRole("button", { name: "Bỏ qua gia sư", exact: true })
-      .click();
-    await expect(
-      page.getByRole("status").filter({ hasText: "Đang xử lý…" }),
-    ).toHaveCount(0);
+  await expect(page.locator(".matching-card")).toBeVisible();
+  // Older fictional tutors from a local rerun may still be eligible; skip them persistently.
+  for (let i = 0; i < 50; i++) {
+    await expect(page.locator(".matching-card h2")).toBeVisible();
+    const previousTitle = await page.locator(".matching-card h2").textContent();
+    if (previousTitle.includes(suffix)) break;
+    await page.getByRole("button", { name: "Bỏ qua", exact: true }).click();
+    await expect(page.locator(".matching-card h2")).not.toHaveText(previousTitle);
   }
-  await expect(page.locator(".tutor-card h2")).toHaveText(`Gia sư ${suffix}`);
+  await expect(page.locator(".matching-card h2")).toHaveText(`Gia sư ${suffix}`);
+  // Parents only ever see the display name, never the legal name.
+  await expect(page.getByText("Nguyễn Văn Kiểm Thử")).toHaveCount(0);
+  await expect(page.locator(".matching-card").getByText("✦ Đề xuất", { exact: true })).toBeVisible();
   await swipeRight(page, testInfo.project.name === "mobile");
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await page.getByRole("button", { name: "Đóng cửa sổ", exact: true }).click();
-  await page.getByRole("button", { name: "Đã quan tâm", exact: true }).click();
-  await expect(
-    page.getByRole("heading", { name: `Gia sư ${suffix}`, exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText("Đã gửi sự quan tâm. Chờ bên kia cùng OK để tạo Match.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.getByRole("button", { name: "Đã OK & Match", exact: true }).click();
+  await expect(page.locator(".matching-card h2")).toHaveText(`Gia sư ${suffix}`);
   await page.reload();
-  await expect(
-    page.getByRole("heading", { name: `Gia sư ${suffix}`, exact: true }),
-  ).toBeVisible();
-  const originalStudent = (
-    await (await page.request.get("/api/students")).json()
-  )[0];
+  await expect(page.getByText("Bạn đã OK. Đang chờ bên kia phản hồi.", { exact: true })).toBeVisible();
+  expect((await (await page.request.get("/api/lessons")).json()).length).toBe(0);
+  const originalStudent = (await (await page.request.get("/api/students")).json())[0];
+
+  const tutorContext = await browser.newContext({ baseURL: "http://127.0.0.1:33000" });
+  const tutorPage = await tutorContext.newPage();
+  await login(tutorPage, tutorEmail);
+  await tutorPage.getByRole("button", { name: "Tìm học sinh", exact: true }).click();
+  await expect(tutorPage.locator(".matching-card h2")).toHaveText("Học sinh lớp 6");
+  await expect(tutorPage.locator(".matching-card").getByText("♡ Quan tâm bạn", { exact: true })).toBeVisible();
+  const tutorFeed = await (await tutorPage.request.get("/api/tutor/matching")).json();
+  expect(tutorFeed.cards[0].studentId).toBe(originalStudent.id);
+  const anonymous = JSON.stringify(tutorFeed.cards[0]);
+  expect(anonymous).not.toContain(parentEmail);
+  expect(anonymous).not.toContain("Con kiểm thử");
+  expect(anonymous).not.toContain("Phụ huynh kiểm thử");
+  await tutorPage.getByRole("button", { name: "OK — quan tâm", exact: true }).click();
+  await expect(tutorPage.getByText("Hai bên đã cùng OK. Bạn có một Match mới!", { exact: true })).toBeVisible();
+  await tutorPage.getByRole("button", { name: "Đã OK & Match", exact: true }).click();
+  await expect(tutorPage.locator(".matching-card").getByText("✓ Đã Match", { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.locator(".matching-card").getByText("✓ Đã Match", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Thông báo Match")).toBeVisible();
+  expect((await (await page.request.get("/api/lessons")).json()).length).toBe(0);
+
   const secondStudent = await createStudent(page.request, {
-    nickname: "Em khác",
-    grade: 6,
-    subjects: ["Ngữ văn"],
-    province: "Hà Nội",
-    mode: "ONLINE",
-    budget: 200000,
-    availability: ["1_EVENING"],
-    needs: "Hỗ trợ Ngữ văn",
-    survey,
-    consent: true,
+    nickname: "Học sinh thứ hai", grade: 6, subjects: ["Toán"], province: "Hà Nội",
+    mode: "ONLINE", budget: 200000, availability: ["1_EVENING"],
+    needs: "Củng cố nền tảng", survey, consent: true,
   });
   await page.reload();
-  await expect(
-    page.getByRole("heading", { name: `Gia sư ${suffix}`, exact: true }),
-  ).toBeVisible();
-  await page
-    .getByRole("combobox", { name: "Hồ sơ học sinh", exact: true })
-    .selectOption(secondStudent.id);
-  await expect(
-    page.getByRole("heading", {
-      name: "Chưa có gia sư đã quan tâm phù hợp",
-      exact: true,
-    }),
-  ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Khám phá gia sư", exact: true })
-    .click();
-  await expect(
-    page.getByRole("heading", {
-      name: "Sẵn sàng gặp gia sư phù hợp?",
-      exact: true,
-    }),
-  ).toBeVisible();
-  await page
-    .getByRole("combobox", { name: "Hồ sơ học sinh", exact: true })
-    .selectOption(originalStudent.id);
-  await page.getByRole("button", { name: "Đã quan tâm", exact: true }).click();
-  await expect(
-    page.getByRole("heading", { name: `Gia sư ${suffix}`, exact: true }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Bỏ quan tâm", exact: true }).click();
-  await expect(
-    page.getByRole("heading", {
-      name: "Chưa có gia sư đã quan tâm phù hợp",
-      exact: true,
-    }),
-  ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Khám phá gia sư", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "Lấy gợi ý mới", exact: true })
-    .click();
-  await expect(page.locator(".tutor-card h2")).toHaveText(`Gia sư ${suffix}`);
-  await page
-    .getByRole("button", { name: "Quan tâm gia sư", exact: true })
-    .click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await page.getByRole("button", { name: "Đóng cửa sổ", exact: true }).click();
-  await page.getByRole("button", { name: "Đã quan tâm", exact: true }).click();
-  await page
-    .getByRole("button", { name: "Gửi yêu cầu học thử", exact: true })
-    .click();
-  const proposed = new Date(Date.now() + 2 * 86400000);
-  proposed.setMinutes(proposed.getMinutes() - proposed.getTimezoneOffset());
-  await page
-    .getByLabel("Ngày và giờ đề xuất (giờ địa phương)", { exact: true })
-    .fill(proposed.toISOString().slice(0, 16));
-  await page
-    .getByLabel("Lời nhắn cho gia sư (tùy chọn)", { exact: true })
-    .fill("Xin một buổi học thử.");
-  await page
-    .getByRole("button", { name: "Gửi yêu cầu học thử →", exact: true })
-    .click();
-  await expect(
-    page.getByText("Đang chờ phản hồi", { exact: true }),
-  ).toBeVisible();
-  const pending = await (await page.request.get("/api/lessons")).json();
-  expect(pending[0].tutor_email).toBeNull();
-  expect(pending[0].tutor_id).toBe(tutorProfile.id);
-
-  await logout(page);
-  await login(page, tutorEmail);
-  await page
-    .getByRole("button", { name: "Yêu cầu học thử", exact: true })
-    .click();
-  await page.getByRole("button", { name: "Chấp nhận", exact: true }).click();
-  await expect(page.getByText("Đã kết nối", { exact: true })).toBeVisible();
-  await expect(page.getByText(parentEmail, { exact: false })).toBeVisible();
-  await logout(page);
-  await login(page, parentEmail);
-  await page.getByRole("button", { name: "Lịch học thử", exact: true }).click();
-  await expect(page.getByText(tutorEmail, { exact: false })).toBeVisible();
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= window.innerWidth,
-    ),
-  ).toBe(true);
+  await page.getByRole("combobox", { name: "Hồ sơ học sinh", exact: true }).selectOption(secondStudent.id);
+  await expect(page.getByRole("heading", { name: "Chưa có lựa chọn đang chờ hoặc Match", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Xem Match", exact: true }).click();
+  await expect(page.getByRole("combobox", { name: "Hồ sơ học sinh", exact: true })).toHaveValue(originalStudent.id);
+  await expect(page.locator(".matching-card").getByText("✓ Đã Match", { exact: true })).toBeVisible();
+  await page.screenshot({ path: `test-results/sprint4-${testInfo.project.name}.png`, fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  // Fill the tutor's remaining daily budget through the real API, then verify the disabled UI.
+  for (let i = 0; i < 9; i++) {
+    const s = await createStudent(page.request, {
+      nickname: `Hồ sơ giới hạn ${i}`, grade: 6, subjects: ["Toán"], province: "Hà Nội",
+      mode: "ONLINE", budget: 200000, availability: ["1_EVENING"], needs: "Củng cố kiến thức", survey, consent: true,
+    });
+    const csrf = await (await tutorPage.request.get("/api/auth/csrf")).json();
+    const response = await tutorPage.request.post("/api/matching/actions", {
+      data: { studentId: s.id, tutorId: tutorProfile.id, interested: true },
+      headers: { "X-XSRF-TOKEN": csrf.token },
+    });
+    expect(response.ok()).toBeTruthy();
+  }
+  await tutorPage.getByRole("button", { name: "Tìm học sinh", exact: true }).click();
+  await expect(tutorPage.getByRole("button", { name: "OK — quan tâm", exact: true })).toBeDisabled();
+  await expect(tutorPage.getByRole("button", { name: "Bỏ qua", exact: true })).toBeEnabled();
+  const capped = await (await tutorPage.request.get("/api/tutor/matching")).json();
+  expect(capped.limits.totalRemaining).toBe(0);
+  await tutorPage.reload();
+  await expect(tutorPage.getByRole("button", { name: "OK — quan tâm", exact: true })).toBeDisabled();
+  expect((await (await tutorPage.request.get("/api/tutor/matching")).json()).cards[0].studentId).toBe(capped.cards[0].studentId);
+  const skipResponse = tutorPage.waitForResponse((response) => response.url().endsWith("/api/matching/actions") && response.request().method() === "POST");
+  await tutorPage.getByRole("button", { name: "Bỏ qua", exact: true }).click();
+  expect((await skipResponse).ok()).toBeTruthy();
+  await tutorContext.close();
 
   await logout(page);
   await page.goto("/#/forgot");
@@ -376,6 +357,77 @@ test("email, private review, saved interests, trial acceptance and password rese
     .getByRole("button", { name: "Lưu mật khẩu mới", exact: true })
     .click();
   await login(page, parentEmail, "reset-browser-password-123");
+  // Profile management runs on these fictional accounts before deleting them at the end.
+  const managedStudent = await createStudent(page.request, {
+    nickname: "Con quản lý", grade: 6, subjects: ["Toán"], province: "Hà Nội", mode: "ONLINE",
+    budget: 200000, availability: ["1_EVENING"], needs: "Củng cố tư duy Toán", survey, consent: true,
+  });
+  const managementContext = await browser.newContext({ baseURL: "http://127.0.0.1:33000",
+    ...(testInfo.project.name === "mobile" ? { viewport: { width: 360, height: 800 }, isMobile: true, hasTouch: true } : {}) });
+  const teacherManagement = await managementContext.newPage();
+  await login(teacherManagement, tutorEmail);
+  const accepting = teacherManagement.getByRole("switch", { name: "Nhận học sinh mới", exact: true });
+  await accepting.uncheck();
+  await expect(teacherManagement.getByText("Đã tạm ẩn khỏi đề xuất. Các Match đã có được giữ lại.", { exact: true })).toBeVisible();
+  await teacherManagement.reload();
+  await expect(accepting).not.toBeChecked();
+  expect((await (await page.request.get(`/api/students/${managedStudent.id}/matching`)).json()).cards.some((c) => c.tutorId === tutorProfile.id)).toBe(false);
+  await accepting.check();
+  await expect(teacherManagement.getByText("Đã bật nhận học sinh. Quyền hiển thị vẫn phụ thuộc kết quả duyệt và admin.", { exact: true })).toBeVisible();
+  expect((await (await page.request.get(`/api/students/${managedStudent.id}/matching`)).json()).cards.some((c) => c.tutorId === tutorProfile.id)).toBe(true);
+
+  await page.reload();
+  let managedCard = page.locator("article.student").filter({ has: page.getByRole("heading", { name: "Con quản lý", exact: true }) });
+  await managedCard.getByRole("button", { name: "Ẩn hồ sơ con", exact: true }).click();
+  await expect(managedCard.getByRole("button", { name: "Bật hiển thị hồ sơ con", exact: true })).toBeVisible();
+  await page.reload();
+  await expect(managedCard.getByRole("button", { name: "Bật hiển thị hồ sơ con", exact: true })).toBeVisible();
+  expect((await (await teacherManagement.request.get("/api/tutor/matching")).json()).cards.some((c) => c.studentId === managedStudent.id)).toBe(false);
+  await managedCard.getByRole("button", { name: "Bật hiển thị hồ sơ con", exact: true }).click();
+  await expect(managedCard.getByRole("button", { name: "Ẩn hồ sơ con", exact: true })).toBeVisible();
+  await managedCard.getByRole("button", { name: "Chỉnh sửa hồ sơ & khảo sát", exact: true }).click();
+  await page.getByLabel("Tên gọi của con", { exact: true }).fill("Con quản lý đã sửa");
+  await page.getByRole("checkbox", { name: /Tôi là phụ huynh/ }).check();
+  await page.getByRole("button", { name: "Lưu hồ sơ & khảo sát", exact: true }).click();
+  managedCard = page.locator("article.student").filter({ has: page.getByRole("heading", { name: "Con quản lý đã sửa", exact: true }) });
+  await managedCard.getByRole("button", { name: "Xóa hồ sơ con", exact: true }).click();
+  let deletion = page.getByRole("dialog");
+  await expect(deletion.getByRole("button", { name: "Xác nhận xóa", exact: true })).toBeDisabled();
+  await deletion.getByRole("button", { name: "Hủy", exact: true }).click();
+  await expect(managedCard).toBeVisible();
+  await managedCard.getByRole("button", { name: "Xóa hồ sơ con", exact: true }).click();
+  await deletion.getByLabel("Nhập XÓA để xác nhận", { exact: true }).fill("XÓA");
+  await deletion.getByRole("button", { name: "Xác nhận xóa", exact: true }).click();
+  await expect(managedCard).toHaveCount(0);
+  expect((await (await page.request.get("/api/students")).json()).some((s) => s.id === managedStudent.id)).toBe(false);
+
+  await teacherManagement.getByRole("button", { name: "Xóa hồ sơ giảng dạy", exact: true }).click();
+  const teacherDialog = teacherManagement.getByRole("dialog");
+  await teacherDialog.getByLabel("Mật khẩu hiện tại để xác nhận xóa").fill("wrong-password");
+  await teacherDialog.getByLabel("Nhập XÓA để xác nhận").fill("XÓA");
+  await teacherDialog.getByRole("button", { name: "Xác nhận xóa", exact: true }).click();
+  await expect(teacherDialog.getByRole("alert")).toContainText("Mật khẩu hiện tại không đúng");
+  await teacherDialog.getByLabel("Mật khẩu hiện tại để xác nhận xóa").fill(password);
+  await teacherDialog.getByRole("button", { name: "Xác nhận xóa", exact: true }).click();
+  await expect(teacherManagement.getByRole("heading", { name: "Trạng thái nhận học sinh", exact: true })).toHaveCount(0);
+  expect((await teacherManagement.request.get("/api/tutor/profile")).status()).toBe(404);
+  await teacherManagement.screenshot({ path: `test-results/management-${testInfo.project.name}.png`, fullPage: true });
+  await teacherManagement.getByRole("button", { name: "Xóa tài khoản của tôi", exact: true }).click();
+  await teacherDialog.getByLabel("Mật khẩu hiện tại để xác nhận xóa").fill(password);
+  await teacherDialog.getByLabel("Nhập XÓA để xác nhận").fill("XÓA");
+  await teacherDialog.getByRole("button", { name: "Xác nhận xóa", exact: true }).click();
+  await expect(teacherManagement.getByRole("button", { name: "Đăng xuất", exact: true })).toHaveCount(0);
+  expect((await teacherManagement.request.get("/api/auth/me")).status()).toBe(401);
+
+  await page.getByRole("button", { name: "Tài khoản", exact: true }).click();
+  await page.getByRole("button", { name: "Xóa tài khoản của tôi", exact: true }).click();
+  deletion = page.getByRole("dialog");
+  await deletion.getByLabel("Mật khẩu hiện tại để xác nhận xóa").fill("reset-browser-password-123");
+  await deletion.getByLabel("Nhập XÓA để xác nhận").fill("XÓA");
+  await deletion.getByRole("button", { name: "Xác nhận xóa", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Đăng xuất", exact: true })).toHaveCount(0);
+  expect((await page.request.get("/api/auth/me")).status()).toBe(401);
+  await managementContext.close();
   expect(errors).toEqual([]);
 });
 
@@ -392,7 +444,7 @@ test("parent signs in right after registering and a duplicate email gets sign-in
 
   await page.goto("/#/register");
   await page.getByLabel("Email", { exact: true }).fill(email);
-  await page.getByLabel("Họ và tên").fill("Người đăng ký lại");
+  await page.getByLabel("Tên hiển thị").fill("Người đăng ký lại");
   await page.getByLabel("Số điện thoại").fill("+84900000000");
   await page.getByLabel("Bạn tham gia với vai trò").selectOption("PARENT");
   await page

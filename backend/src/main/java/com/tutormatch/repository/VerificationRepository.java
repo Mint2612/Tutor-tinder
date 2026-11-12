@@ -147,12 +147,14 @@ public class VerificationRepository {
         status,
         tutor);
     db.update(
-        "INSERT INTO verification_audit(id,tutor_id,admin_id,decision,reason) VALUES(?,?,?,?,?)",
+        "INSERT INTO verification_audit(id,tutor_id,admin_id,decision,reason,submission_id,revision)"
+            + " SELECT ?,?,?,?,?,submission_id,revision FROM tutor_profiles WHERE id=?",
         UUID.randomUUID().toString(),
         tutor,
         admin,
         status,
-        reason);
+        reason,
+        tutor);
   }
 
   public int visibility(String tutor, boolean visible) {
@@ -162,7 +164,7 @@ public class VerificationRepository {
   public List<AuditResponse> audit(String tutor) {
     return db
         .queryForList(
-            "SELECT id,decision,reason,created_at FROM verification_audit WHERE tutor_id=? ORDER BY"
+            "SELECT id,decision,reason,created_at,submission_id,revision FROM verification_audit WHERE tutor_id=? ORDER BY"
                 + " created_at DESC,id",
             tutor)
         .stream()

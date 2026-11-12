@@ -9,7 +9,7 @@
 | Sprint 1 | Phụ huynh và gia sư có thể đăng ký, xác thực, đăng nhập và khôi phục tài khoản đúng vai trò. | ☐ Yes ☐ No | 4 / 4 |
 | Sprint 2 | Phụ huynh lưu được hồ sơ và nhu cầu học của con; gia sư hoàn thiện được hồ sơ giảng dạy. | ☐ Yes ☐ No | 3 / 3 |
 | Sprint 3 | Admin xác minh được gia sư; chỉ hồ sơ được duyệt mới có thể xuất hiện với phụ huynh. | ☐ Yes ☐ No | 3 / 3 |
-| Sprint 4 | Phụ huynh tìm được gia sư phù hợp, xem chi tiết và lưu lựa chọn thích/bỏ qua. | ☐ Yes ☐ No | 3 / 3 |
+| Sprint 4 | Phụ huynh và gia sư nhận thẻ phù hợp hai chiều, chọn OK/Bỏ qua và tạo Match khi cùng quan tâm. | ☐ Yes ☐ No | 3 / 3 |
 | Sprint 5 | Phụ huynh gửi được yêu cầu học thử; gia sư phản hồi và hai bên thấy liên hệ sau khi chấp nhận. | ☐ Yes ☐ No | 4 / 4 |
 | Sprint 6 | Người dùng hoàn thành được luồng tìm gia sư đến học thử ổn định trên trình duyệt máy tính và điện thoại. | ☐ Yes ☐ No | 2 / 2 |
 | **Tổng** | **19 stories cam kết đề xuất** | | **19 / 19** |
@@ -33,7 +33,7 @@ Các US của Sprint 1: [US-01](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIE
 
 - [ ] **S2-01 — Hồ sơ học sinh:** Phụ huynh muốn tạo/sửa thông tin học của con để tìm gia sư đúng nhu cầu. **Done:** lưu được môn, lớp, hình thức học, khu vực, lịch và ngân sách khi đã đồng ý lưu dữ liệu; ghi nhận đồng ý; tải lại vẫn có dữ liệu; phụ huynh khác không xem/sửa được.
 - [ ] **S2-02 — Khảo sát nhu cầu:** Phụ huynh muốn mô tả cách học và nhu cầu của con để nhận gợi ý phù hợp hơn. **Done:** trả lời được 6 câu khảo sát và mô tả tự do; lưu đúng hồ sơ học sinh; mở lại xem/sửa được.
-- [ ] **S2-03 — Hồ sơ gia sư:** Gia sư muốn giới thiệu khả năng và điều kiện dạy để được tìm thấy. **Done:** lưu/sửa được môn, lớp, hình thức, khu vực, lịch rảnh, học phí, kinh nghiệm và phương pháp dạy; dữ liệu sai bị báo lỗi; tải lại vẫn có dữ liệu.
+- [ ] **S2-03 — Hồ sơ gia sư:** Gia sư muốn giới thiệu khả năng và điều kiện dạy để được tìm thấy. **Done:** lưu/sửa được môn, lớp, hình thức, khu vực, lịch rảnh, học phí, kinh nghiệm và phương pháp dạy; dữ liệu sai bị báo lỗi; tải lại vẫn có dữ liệu. Nhận huy hiệu xác minh theo cấp đúng với bảng đã nêu trong README.md
 
 Các US của Sprint 2: [US-02](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIES.md#us-02-tạo-hồ-sơ-học-sinh-và-làm-khảo-sát), [US-03](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIES.md#us-03-gia-sư-tạo-hồ-sơ-và-khai-báo-phương-pháp-dạy).
 
@@ -85,7 +85,7 @@ Các US và yêu cầu của Sprint 6: S6-01 nghiệm thu xuyên suốt [US-01](
 | Sprint 1 | | | |
 | Sprint 2 | | | |
 | Sprint 3 | | | |
-| Sprint 4 | | | |
+| Sprint 4 | Nhiều OK đồng thời có thể tranh khóa bộ đếm. | Đã dùng upsert lấy khóa độc quyền và thêm kiểm thử đồng thời cho cả hai vai trò. | Nhóm phát triển |
 | Sprint 5 | | | |
 | Sprint 6 | | | |
 

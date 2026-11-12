@@ -1,6 +1,7 @@
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { PageHeading } from "../../components/shared";
 import { AccountCard } from "./AccountCard";
+import { AccountDeletion } from "./AccountDeletion";
 
 export function ParentProfile() {
   const { students, navigate, busy } = useWorkspace();
@@ -9,7 +10,7 @@ export function ParentProfile() {
       <PageHeading
         eyebrow="TÀI KHOẢN"
         title="Thông tin của bạn."
-        description="Tên và số điện thoại dùng để liên hệ sau khi gia sư chấp nhận học thử."
+        description="Tên hiển thị và số điện thoại dùng để liên hệ sau khi gia sư chấp nhận học thử."
       />
       <AccountCard />
       <section className="panel">
@@ -33,6 +34,7 @@ export function ParentProfile() {
           Quản lý hồ sơ của con
         </button>
       </section>
+      <AccountDeletion />
     </>
   );
 }

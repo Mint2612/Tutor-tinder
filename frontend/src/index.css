@@ -498,22 +498,44 @@ legend {
   font-weight: 600;
   padding: 0 8px;
 }
-.schedule {
-  display: grid;
-  grid-template-columns: 2fr repeat(3, 1fr);
-  gap: 14px;
-  max-width: 470px;
-  font-size: 12px;
-  align-items: center;
+.combobox-box {
+  position: relative;
 }
-.schedule-row {
-  display: contents;
+.combobox-list {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  max-height: 264px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #dbe4ea;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(16, 42, 67, 0.14);
 }
-.schedule input {
-  justify-self: center;
+.combobox-list li {
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
 }
-.schedule > span {
-  text-align: center;
+.combobox-list li.active {
+  background: #eef6f5;
+}
+.combobox-list li[aria-selected="true"] {
+  color: #087e83;
+  font-weight: 600;
+}
+.combobox-list li.combobox-empty {
+  color: #6b7f90;
+  cursor: default;
+}
+.combobox input[aria-invalid="true"] {
+  border-color: #ad6855;
 }
 .survey {
   background: #f5f9f8;
@@ -1273,3 +1295,16 @@ summary {
     animation: none !important;
   }
 }
+.matching-deck { max-width: 640px; margin: 2rem auto; }
+.matching-card { touch-action: pan-y; overflow-wrap: anywhere; }
+.matching-card .verified { position: static; display: inline-block; background: #edf7ee; font-size: 11px; }
+.matching-saved { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 24px; }
+.matching-saved .swipe-area { width: 100%; }
+.matching-limits { color: var(--muted, #5b6460); line-height: 1.7; }
+.match-notifications { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 16px; margin: 16px 0; border: 1px solid #a4c7ad; border-radius: 16px; background: #edf7ee; }
+.danger-zone { margin-top: 24px; border-color: #dfaaa3; }
+.danger-button { background: #a9362d; color: white; }
+.danger-button:hover { background: #87271f; }
+.danger-text { color: #a9362d; }
+.student .secondary + .secondary { margin-top: 10px; }
+.tutor-controls { margin: 24px 0; }

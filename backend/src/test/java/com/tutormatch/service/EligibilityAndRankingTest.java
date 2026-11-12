@@ -61,7 +61,8 @@ class EligibilityAndRankingTest {
         "private-submission-id",
         null,
         null,
-        null);
+        null,
+        "Họ và tên đầy đủ");
   }
 
   TutorProfile tutor() {

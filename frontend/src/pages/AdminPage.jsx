@@ -17,6 +17,7 @@ export function AdminPage() {
           <article className="panel" key={t.id}>
             <h3>{t.display_name || "Hồ sơ chưa hoàn thiện"}</h3>
             <span className="status">{statusText[t.workflow_state]}</span>
+            <p>Họ và tên khai báo: {t.full_name || "chưa khai"}</p>
             <p>Hiển thị: {t.visible ? "Bật" : "Tắt"}</p>
             <button
               className="secondary"

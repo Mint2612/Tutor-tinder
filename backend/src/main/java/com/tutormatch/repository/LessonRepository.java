@@ -41,9 +41,9 @@ public class LessonRepository {
 
   public int respond(String id, String tutorUser, String status) {
     return db.update(
-        "UPDATE lesson_requests l JOIN tutor_profiles t ON t.id=l.tutor_id SET"
+        "UPDATE lesson_requests l JOIN tutor_profiles t ON t.id=l.tutor_id JOIN student_profiles s ON s.id=l.student_id SET"
             + " l.status=?,l.responded_at=CURRENT_TIMESTAMP WHERE l.id=? AND t.user_id=? AND"
-            + " l.status='PENDING' AND l.expires_at>CURRENT_TIMESTAMP",
+            + " l.status='PENDING' AND s.deleted_at IS NULL AND t.deleted_at IS NULL AND l.expires_at>CURRENT_TIMESTAMP",
         status,
         id,
         tutorUser);
@@ -61,10 +61,10 @@ public class LessonRepository {
         .queryForList(
             "SELECT"
                 + " l.id,l.student_id,l.tutor_id,l.status,l.proposed_at,l.expires_at,l.message,l.created_at,s.nickname,t.display_name,CASE"
-                + " WHEN l.status='ACCEPTED' THEN pu.email ELSE NULL END AS parent_email,CASE WHEN"
-                + " l.status='ACCEPTED' THEN pu.phone ELSE NULL END AS parent_phone,CASE WHEN"
-                + " l.status='ACCEPTED' THEN tu.email ELSE NULL END AS tutor_email,CASE WHEN"
-                + " l.status='ACCEPTED' THEN tu.phone ELSE NULL END AS tutor_phone FROM"
+                + " WHEN l.status='ACCEPTED' AND l.contact_revoked=FALSE AND s.deleted_at IS NULL AND t.deleted_at IS NULL AND pu.deleted_at IS NULL AND tu.deleted_at IS NULL THEN pu.email ELSE NULL END AS parent_email,CASE WHEN"
+                + " l.status='ACCEPTED' AND l.contact_revoked=FALSE AND s.deleted_at IS NULL AND t.deleted_at IS NULL AND pu.deleted_at IS NULL AND tu.deleted_at IS NULL THEN pu.phone ELSE NULL END AS parent_phone,CASE WHEN"
+                + " l.status='ACCEPTED' AND l.contact_revoked=FALSE AND s.deleted_at IS NULL AND t.deleted_at IS NULL AND pu.deleted_at IS NULL AND tu.deleted_at IS NULL THEN tu.email ELSE NULL END AS tutor_email,CASE WHEN"
+                + " l.status='ACCEPTED' AND l.contact_revoked=FALSE AND s.deleted_at IS NULL AND t.deleted_at IS NULL AND pu.deleted_at IS NULL AND tu.deleted_at IS NULL THEN tu.phone ELSE NULL END AS tutor_phone FROM"
                 + " lesson_requests l JOIN student_profiles s ON s.id=l.student_id JOIN"
                 + " tutor_profiles t ON t.id=l.tutor_id JOIN users pu ON pu.id=s.parent_id JOIN"
                 + " users tu ON tu.id=t.user_id WHERE "

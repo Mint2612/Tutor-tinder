@@ -13,3 +13,28 @@ Before deployment, back up MariaDB and test migrations on a restored copy. Keep 
 Verification after setup: `docker compose --profile test run --rm backend-test` exercises V1/V2 against the isolated MariaDB test database. Tests create explicitly marked fixtures, never production users. Test database is tmpfs. Stop it without deleting application volumes with `docker compose stop test-db`.
 
 Email-only activation reuses `email_verified`; `phone_verified` remains for schema compatibility and is no longer required by authentication/discovery. No migration rewrites existing verification flags, and V1/V2 checksums remain unchanged.
+
+## V4 — Verification audit submission
+
+Adds nullable `submission_id` and `revision` to `verification_audit`. New decisions record the reviewed submission and profile revision. Existing decisions keep null values because their historical submission cannot be reconstructed reliably. No account, evidence or decision records are removed.
+
+## V6 — Two-way matching
+
+Adds `matching_pairs`, daily profile quota counters and account-owned Match notifications. Existing `swipe_interactions` become parent decisions only; no historical one-sided like becomes a Match. Interest timestamps and seven-day deadlines are preserved; expired historical interests close. Historical OKs count toward their Vietnam calendar date. Existing tables/rows remain intact. V1–V5 from upstream are unchanged. Quota counters and pair decisions commit atomically; the parent compatibility endpoint still writes `swipe_interactions`.
+
+When rerunning isolated tests after switching between incompatible historical branches, recreate only the tmpfs test database. Never repair/delete the application schema to make a test run pass.
+
+### Local upgrade from the pre-pull Sprint 4 build
+
+Upstream commit `3a7e3df` introduces `V5__tutor_legal_name.sql`; the local matching migration was therefore moved to V6. A local application database that already records `V5__two_way_matching.sql` needs a one-time, backed-up migration-history alignment to V6 followed by out-of-order application of upstream V5. Fresh databases use upstream V5 then local V6 normally. Do not delete application volumes or blanket-repair migration checksums to resolve this version collision.
+
+**Completed locally on 2026-11-07:** stopped the app/backend, saved a full SQL backup plus migration history and protected-table fingerprints under the ignored `.local/backups/` directory, changed only the matching history version/script from V5 to V6, and applied upstream V5 with a temporary out-of-order override. After successful migration, removed the override and recreated backend/frontend using default Compose. Default startup passed Flyway validation. Accounts, student records, evidence metadata, choices, quotas, Match records and notifications were preserved. The current local app now uses the final merged schema; regular `docker compose --profile app up --build -d` works without additional upgrade steps.
+
+## V7 — Profile/account management
+
+Adds nullable deletion timestamps to users/student/tutor profiles, student `visible`, tutor
+`accepting_students`, and permanent `contact_revoked` on historical lessons. Existing profiles default
+to visible/accepting and no accounts are deleted by migration. Self-pausing does not write admin
+visibility/approval fields. Actual deletion is an explicit authenticated action, with current-password
+confirmation for account/tutor-profile deletion, identifying data removal and session revocation.
+Historical foreign-key targets remain as anonymous tombstones. See [management behavior](profile-management.md).

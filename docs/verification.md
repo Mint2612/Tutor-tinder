@@ -41,7 +41,7 @@ npm run test:e2e
 
 Test endpoints: app http://127.0.0.1:33000, backend http://127.0.0.1:38080, Mailpit http://127.0.0.1:38025. Tests create unique fictional parent/tutor accounts and consume their actual SMTP emails from the local inbox. The test-only admin is defined in `compose.e2e.yaml`; do not use that override for application hosting.
 
-The browser workflow verifies registration/email-link activation, tutor form/evidence upload, admin evidence access before approval, parent survey/consent, discovery, saved interests across refresh, trial requests and acceptance, contact gating, switching between students with different subjects, password-reset email links and sign-in with the changed password. A separate scenario checks anonymous role-route protection and recovery from a failed network request. It runs on Chromium desktop and a 360px mobile/touch configuration. These are emulated device checks, not proof of every physical device or browser.
+The current browser workflow verifies registration/email-link activation, tutor form/evidence upload and renewed approval, parent survey/consent, two-way anonymous discovery, swipe/buttons, incoming tags, mutual Match and notifications, saved choices across refresh, per-student isolation, exhausted quota with Skip still enabled, password-reset email links and sign-in with the changed password. Existing trial/contact logic remains covered by backend regression tests; it is outside the new Sprint 4 UI workflow. A separate scenario checks anonymous role-route protection and recovery from a failed network request. It runs on Chromium desktop and a 360px mobile/touch configuration. These are emulated device checks, not proof of every physical device or browser.
 
 The suite retains screenshots only on failure. Network traces are disabled because verification/reset emails contain single-use secrets. Generated artifacts are ignored by Git.
 
@@ -93,3 +93,45 @@ Choose Database → New Database Connection → MariaDB, enter the values and us
 The SQL script reads application tables and masks hash values. Its SET only changes a connection-local variable. Verification/reset links are delivered through the configured SMTP provider (Mailpit locally, or Gmail with the setup in [environment.md](environment.md#gmail-smtp)), not stored as raw secrets in MariaDB. DBeaver's own database Session Manager concerns database connections; application login sessions are tracked through auth_sessions.
 
 Gmail SMTP connection check on 2026-11-07: STARTTLS and authentication succeeded with local credentials, and the backend health check passed after configuration reload. No email was sent by this connection check; actual recipient inbox delivery still requires the registration/reset flow. Credentials remain in the ignored `.env` file.
+
+## Sprint 3 — reapproval acceptance (2026-11-07)
+
+- Backend: `./mvnw -B -o test` against isolated MariaDB: **56 tests passed**, zero failures/errors/skips. Includes fresh evidence reads per resubmission, submission/revision audit fields, rejection reasons, file type/size/count limits, ownership, and profile/photo changes withdrawing approval and public access. Storage in these backend tests is mocked.
+- Browser: **6 Playwright tests passed**, Chromium desktop and 360px mobile emulation, against separate MariaDB, Mailpit and **real MinIO**. The main workflow uploads and downloads identity evidence, approves, edits the tutor profile, resubmits, confirms the approval button remains disabled until another download, then approves again and continues discovery.
+- Frontend Oxlint and Docker production builds passed. These checks do not claim testing on a physical phone or all browsers.
+
+Manual Sprint 3 review:
+
+1. Tutor: complete profile, upload PDF/PNG/JPEG (at most 5 MB each, five files), submit; reload and confirm pending status. Invalid/empty/oversized files must fail.
+2. Admin: open the submission; approval must fail until current evidence has been downloaded. Reject with a reason, verify the tutor sees it, then resubmit and approve after a fresh read. History displays decision, reason, submission ID and revision.
+3. Parent: use matching student conditions; approved/visible/activated tutor appears with a verification badge. Admin hiding the tutor removes public access and suggestions.
+4. Tutor: save an approved profile or replace/remove its photo; status becomes DRAFT and public profile/suggestions disappear. Resubmit; the earlier evidence read cannot authorize the new submission.
+5. Parent/another tutor: accessing `/api/admin/documents/{id}` must return 403; anonymous access must return 401. Evidence remains in a private storage bucket.
+
+Saving a profile, including saving unchanged form values, conservatively requires reapproval for an approved/pending profile. Rejected profiles retain the rejection reason until resubmission. Old audit rows have unknown submission/revision and are not backfilled. Team review checkboxes remain pending in the sprint sheet.
+
+## Latest Sprint 4 verification — 2026-11-07
+
+66 backend tests passed (including 10 two-way matching integration tests). Six Playwright cases passed across desktop Chromium and Pixel 7 emulation at 360px, with actual local SMTP and object storage. Frontend lint/build passed. See [Sprint 4 scope, migration, API and verification details](sprint4-matching.md). Repeat browser workflows against a clean tmpfs test DB to avoid cumulative registration throttles from prior runs. Formal Product Owner review remains separate from these technical results.
+
+### After pulling upstream `3a7e3df` — 2026-11-07
+
+The local Sprint 4 changes were reapplied and the browser-test conflict resolved while preserving the new legal-name privacy assertion. Matching moves to migration V6 to keep upstream V5 intact. Fresh isolated MariaDB verification passed **79 backend tests**, including the matching tests and the newly added contact/province/name tests. Frontend lint and production build also passed.
+
+Final merged delivery: **all six browser tests reran and passed** on desktop/mobile against this merged source, including the legal-name privacy assertion and current province/time-range controls. The local application database was backed up, its earlier matching migration aligned to V6, and upstream V5 applied successfully. The final app was then restarted using ordinary Compose with no temporary migration override. Parent/tutor/admin logins, the 23-profile sample parent, approved sample tutor, anonymous matching feeds and the new private legal-name field were checked on `localhost:3000`. Protected table row counts and fingerprints matched the pre-upgrade backup; no accounts, student profiles, choices, quota counters, notifications or Match records were lost. See [migration upgrade details](migrations.md#local-upgrade-from-the-pre-pull-sprint-4-build).
+
+## Profile/account management — 2026-11-07
+
+**87 backend tests passed**, including 8 new profile-management integration tests and the existing
+matching/auth/privacy suite. **Six desktop/mobile Playwright cases passed** with the main workflow
+expanded to exercise tutor pause/restore, persisted visibility, student editing/hiding/deletion,
+confirmation cancellation, incorrect-password handling, teaching-profile deletion and account
+deletion for both roles. Deletion cases use only isolated test accounts/database/object storage.
+Frontend lint and production build passed.
+
+The local application was backed up before migration V7 and rebuilt/restarted with default Compose.
+Comparison of every pre-existing field/row in 15 protected tables passed after migration, including
+user/student/tutor profiles, documents, pair decisions, quotas, notices and lesson history. Read-only
+visual smoke checks on the main app verified the new controls and confirmation dialogs at desktop
+and 360px mobile widths; the smoke script canceled deletion and did not alter existing sample data.
+See [profile/account management](profile-management.md).

@@ -16,4 +16,4 @@ public record StudentResponse(
     List<String> availability,
     String needs,
     Map<String, String> survey,
-    @JsonProperty("consent_at") Instant consentAt) {}
+    @JsonProperty("consent_at") Instant consentAt, boolean visible) {}

@@ -1,6 +1,6 @@
 # TutorMatch
 
-Vietnamese tutor discovery: React + Vite, Java 21 + Spring Boot, MariaDB, Spring Security and Flyway. Parents create student profiles, discover verified tutors, save interests and request trial lessons. Tutors manage profiles and requests; admins review private identity evidence.
+Vietnamese tutor discovery: React + Vite, Java 21 + Spring Boot, MariaDB, Spring Security and Flyway. Parents and approved tutors discover compatible anonymous preview cards, choose OK/Skip and create a mutual Match. Parents manage student profiles; tutors manage teaching profiles; admins review private identity evidence.
 
 Accounts activate through **email only**. Phone numbers are used for contact after trial acceptance. Email uses SMTP; local development includes a Mailpit inbox. The current delivery covers Sprints 1–4 with deterministic filtering/ranking. AI is deferred.
 
@@ -30,11 +30,19 @@ Current scope: steps 1–6 (Sprints 1–4). The existing trial-request workflow 
 2. Parent records consent, creates one or more student profiles and completes the six-question survey.
 3. Tutor creates a teaching profile, uploads private identity evidence and submits it for review.
 4. Admin opens current-submission evidence, approves or rejects with a reason and controls visibility. Tutor edits require renewed approval.
-5. Parent discovers tutors satisfying subject, grade, format, province, schedule and budget constraints. Recommendations use rules; AI is deferred.
-6. Swipe/use buttons to like or skip. Reopen liked tutors in **Đã quan tâm**, including after refresh.
-7. Send a proposed trial time and message. The owning tutor accepts/rejects; contact details appear only after acceptance. Duplicate pending requests are blocked, and expired requests cannot be accepted.
+5. Parents open **Khám phá gia sư** for each student; approved visible tutors open **Tìm học sinh**. Both feeds apply subject, grade, format, schedule and budget constraints, plus the same province for in-person lessons. Ranking uses rules.
+6. Swipe or use OK/Skip buttons. One OK prioritizes the card for the other side; two OKs create a Match and persistent notifications. **Đã OK & Match** survives refresh. Each profile has 10 OK/day, including at most 3 replies to incoming interest; pending interest expires after 7 days. See [Sprint 4](docs/sprint4-matching.md).
+7. Detailed post-Match profiles, mutual connection confirmation and the new trial scheduling flow are Sprint 5 backlog. Earlier detail/trial APIs remain for compatibility; the new Sprint 4 interface does not send a trial request on OK.
 
 The scope excludes payment, realtime chat, video, calendar reservations and reviews after lessons.
+
+## Profile management
+
+Parents can edit, hide/show and delete student profiles. Tutors can pause receiving new students
+independently of admin visibility, or delete their teaching profile and create a new draft later.
+Parents/tutors can delete their account with a current-password confirmation; sessions are revoked
+and identifying profile data is removed while historical references stay anonymous. See
+[profile/account management](docs/profile-management.md) for behavior and endpoints.
 
 ## Verification
 

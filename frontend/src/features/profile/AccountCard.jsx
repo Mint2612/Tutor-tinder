@@ -5,8 +5,17 @@ import { Field } from "../../components/shared";
 const roleText = { PARENT: "Phụ huynh", TUTOR: "Gia sư", ADMIN: "Quản trị viên" };
 
 export function AccountCard() {
-  const { account, setAccount, user, setUser, busy, run, setNotification } =
-    useWorkspace();
+  const {
+    account,
+    setAccount,
+    user,
+    setUser,
+    tutor,
+    setTutor,
+    busy,
+    run,
+    setNotification,
+  } = useWorkspace();
   if (!account) return null;
   return (
     <form
@@ -20,13 +29,15 @@ export function AccountCard() {
           const saved = await api("/account", { method: "PUT", body: values });
           setAccount(saved);
           setUser({ ...user, name: saved.name });
+          // A tutor's public name follows the display name, so reload the profile that carries it.
+          if (tutor) setTutor(await api("/tutor/profile"));
           setNotification("Đã cập nhật thông tin tài khoản.");
         });
       }}
     >
       <h2>Thông tin tài khoản</h2>
       <div className="form-grid">
-        <Field label="Họ và tên">
+        <Field label="Tên hiển thị">
           <input
             name="name"
             required
@@ -53,6 +64,9 @@ export function AccountCard() {
         </Field>
       </div>
       <p className="muted">
+        {account.role === "TUTOR"
+          ? "Tên hiển thị là tên phụ huynh thấy trên hồ sơ gia sư của bạn (mặc định là tên lúc đăng ký). "
+          : "Tên hiển thị là tên bạn dùng trên TutorMatch (mặc định là tên lúc đăng ký). "}
         Số điện thoại chỉ được chia sẻ sau khi gia sư chấp nhận học thử.
       </p>
       <button disabled={busy}>Lưu thông tin</button>

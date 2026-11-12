@@ -110,6 +110,11 @@ public class VerificationService {
     var t = tutors.lockOwn(user);
     editable(t);
     require(verification.documentCount(t.id()) > 0, 400, "Cần gửi bằng chứng danh tính");
+    // The admin compares this name with the documents, so it has to be filled in before review.
+    require(
+        t.legalName() != null && !t.legalName().isBlank(),
+        400,
+        "Cần nhập họ và tên đúng như giấy tờ trước khi gửi duyệt");
     require(
         !t.displayName().isBlank()
             && !t.subjects().isEmpty()
@@ -136,6 +141,9 @@ public class VerificationService {
                 () ->
                     new com.tutormatch.exception.BusinessException(404, "Không tìm thấy giấy tờ"));
     tutors.lock(d.tutorId());
+    // Reload after acquiring the tutor lock: a concurrent replacement must not count as read.
+    d = verification.content(id).orElseThrow(
+        () -> new com.tutormatch.exception.BusinessException(404, "Không tìm thấy giấy tờ"));
     byte[] bytes = d.content();
     if (bytes == null)
       bytes =

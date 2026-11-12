@@ -16,4 +16,21 @@ public record StudentProfile(
     List<String> availability,
     String needs,
     Map<String, String> survey,
-    Instant consentAt) {}
+    Instant consentAt,
+    boolean visible) {
+  public StudentProfile(
+    String id,
+    String parentId,
+    String nickname,
+    int grade,
+    List<String> subjects,
+    String province,
+    String mode,
+    int budget,
+    List<String> availability,
+    String needs,
+    Map<String, String> survey,
+    Instant consentAt) {
+    this(id, parentId, nickname, grade, subjects, province, mode, budget, availability, needs, survey, consentAt, true);
+  }
+}

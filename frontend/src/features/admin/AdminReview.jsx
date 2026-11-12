@@ -8,6 +8,16 @@ export function AdminReview({ tutor, decide, busy, run }) {
   return (
     <>
       <TutorDetails tutor={tutor} />
+      <section className="panel">
+        <h3>Đối chiếu danh tính</h3>
+        <p>
+          Họ và tên khai báo (phải trùng giấy tờ):{" "}
+          <strong>{tutor.full_name || "Chưa khai"}</strong>
+        </p>
+        <p className="muted">
+          Tên hiển thị công khai: {tutor.display_name || "—"}
+        </p>
+      </section>
       <h3>Bằng chứng danh tính riêng tư</h3>
       {tutor.documents.map((d) => (
         <p key={d.id}>
@@ -68,6 +78,7 @@ export function AdminReview({ tutor, decide, busy, run }) {
                 {new Date(entry.created_at).toLocaleString("vi-VN")} ·{" "}
                 {statusText[entry.decision]}
                 {entry.reason ? `: ${entry.reason}` : ""}
+                {entry.submission_id && ` · Lần nộp ${entry.submission_id} · Phiên bản ${entry.revision}`}
               </li>
             ))}
           </ul>

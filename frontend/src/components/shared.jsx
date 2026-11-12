@@ -40,47 +40,6 @@ export function Choices({ options, value, onChange, labels = {} }) {
     </div>
   );
 }
-
-export function Schedule({ value, onChange }) {
-  return (
-    <fieldset>
-      <legend>Lịch có thể học / dạy mỗi tuần</legend>
-      <p className="muted">
-        Chọn các buổi có thể sắp xếp. Giờ cụ thể sẽ thống nhất khi học thử.
-      </p>
-      <div className="schedule">
-        <span></span>
-        <span>Sáng</span>
-        <span>Chiều</span>
-        <span>Tối</span>
-        {Array.from({ length: 7 }, (_, i) => (
-          <div className="schedule-row" key={i}>
-            <span>{i === 6 ? "Chủ nhật" : `Thứ ${i + 2}`}</span>
-            {["AM", "PM", "EVENING"].map((slot, j) => {
-              const key = `${i + 1}_${slot}`;
-              return (
-                <input
-                  key={key}
-                  aria-label={`${i === 6 ? "Chủ nhật" : `Thứ ${i + 2}`} ${["sáng", "chiều", "tối"][j]}`}
-                  type="checkbox"
-                  checked={value.includes(key)}
-                  onChange={(e) =>
-                    onChange(
-                      e.target.checked
-                        ? [...value, key]
-                        : value.filter((x) => x !== key),
-                    )
-                  }
-                />
-              );
-            })}
-          </div>
-        ))}
-      </div>
-    </fieldset>
-  );
-}
-
 export function Availability({ slots = [] }) {
   return <span>{sortSlots(slots).map(describeSlot).join(" · ")}</span>;
 }

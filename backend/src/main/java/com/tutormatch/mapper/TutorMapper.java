@@ -35,7 +35,8 @@ public class TutorMapper {
         text(row, "submission_id"),
         instant(row.get("submitted_at")),
         instant(row.get("verified_at")),
-        text(row, "achievements"));
+        text(row, "achievements"),
+        text(row, "legal_name"), bool(row, "accepting_students"));
   }
 
   public TutorResponse publicResponse(TutorProfile t) {
@@ -71,6 +72,7 @@ public class TutorMapper {
         t.experience(),
         t.availability(),
         t.achievements(),
+        privateFields ? t.legalName() : null,
         t.workflowState(),
         t.verificationStatus(),
         t.verifiedAt(),
@@ -80,6 +82,6 @@ public class TutorMapper {
         privateFields ? t.revision() : null,
         privateFields ? t.submittedAt() : null,
         documents,
-        audit);
+        audit, privateFields ? t.acceptingStudents() : null);
   }
 }
