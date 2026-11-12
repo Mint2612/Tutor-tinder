@@ -51,7 +51,7 @@ Các US của Sprint 3: [US-03](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIE
 - [ ] **S4-02 — Thẻ sơ lược và tag:** Mỗi bên muốn xem nhanh thông tin sơ lược của thẻ và biết thẻ do hệ thống đề xuất hay do bên kia quan tâm. **Done:** thẻ gia sư hiển thị môn, huy hiệu xác minh, kinh nghiệm tóm tắt, học phí, khu vực; thẻ học sinh cho gia sư chủ yếu là thông tin học sinh, không có tên, trường, địa chỉ, ảnh hay liên hệ phụ huynh; thẻ có tag "Đề xuất" hoặc "Quan tâm bạn" (chữ kèm icon).
 - [ ] **S4-03 — OK/Bỏ qua và Match:** Mỗi bên muốn chủ động chọn và chỉ kết nối khi cả hai cùng quan tâm. **Done:** thao tác được bằng vuốt và nút tương đương; lựa chọn lưu ở backend; OK của một bên đưa thẻ lên đầu danh sách bên kia với tag "Quan tâm bạn"; cả hai OK thì tạo Match và thông báo; Bỏ qua ẩn cặp khỏi cả hai danh sách mà không báo lý do; giới hạn x = 3 lượt OK vào thẻ "Quan tâm bạn" và 10 lượt OK tổng mỗi ngày mỗi hồ sơ, hết giới hạn thì khóa OK nhưng giữ thẻ; thẻ "Quan tâm bạn" hết hạn sau 7 ngày; tải lại kiểm tra được.
 
-Các US của Sprint 4: [US-05](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIES.md#us-05-gợi-ý-gia-sư-dạng-thẻ-kèm-mức-phù-hợp-lấy-cảm-hứng-cách-matching-tinder), [US-06](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIES.md#us-06-xem-hồ-sơ-chi-tiết-gia-sư).
+Các US của Sprint 4: [US-05](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIES.md#us-05-gợi-ý-gia-sư-dạng-thẻ-kèm-mức-phù-hợp-lấy-cảm-hứng-cách-matching-tinder)
 
 ### Sprint 5 — Kết nối và học thử: tối đa 4 stories
 
@@ -60,11 +60,15 @@ Các US của Sprint 4: [US-05](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIE
 - [ ] **S5-03 — Đặt lịch học thử:** Hai bên muốn thống nhất lịch buổi học thử. **Done:** chỉ cặp "Đã kết nối" đặt được lịch; một bên đề xuất 1 đến 3 khung giờ, bên kia xác nhận hoặc đề xuất giờ khác; lịch chốt thì cả hai nhận thông báo.
 - [ ] **S5-04 — Lịch còn hiệu lực:** Hai bên muốn biết lịch đang chờ, đã chốt, đã hủy hay hết hạn để xử lý tiếp. **Done:** mỗi cặp chỉ có một lịch đang hoạt động; lịch quá hạn phản hồi hiện trạng thái hết hạn khi truy cập; hủy lịch bắt buộc có lý do; không xác nhận lịch đã hết hạn hay phản hồi lần hai.
 
+Các US của Sprint 5: [US-06](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIES.md#us-06-xem-hồ-sơ-chi-tiết-gia-sư), [US-07](../BEHAVIOR%20(%20NON%20TECH%20)/USER_ST0RIES.md#us-07-đặt-lịch-học-thử-sau-khi-kết-nối)
+
 ### Sprint 6 — Hoàn thiện: tối đa 2 stories cam kết + 1 bonus (chỉ sửa 2 dòng)
 
 - [ ] **S6-01 — Sử dụng trên máy tính/điện thoại:** Người dùng muốn hoàn thành luồng chính trên thiết bị của mình. **Done:** nghiệm thu trên trình duyệt máy tính và điện thoại từ đăng nhập, hồ sơ, duyệt gia sư, gợi ý hai chiều, Match, xác nhận kết nối đến học thử; kiểm tra thêm đăng ký/xác thực/khôi phục theo Sprint 1; không có lỗi chặn luồng, nội dung bị che hoặc thao tác không sử dụng được; vuốt và nút đều hoạt động.
 - [ ] **S6-02 — Trạng thái rõ ràng và thử lại:** Người dùng muốn biết thao tác đang xử lý, thành công hay thất bại để tiếp tục sử dụng. **Done:** các màn hình chính có trạng thái tải/trống/lỗi phù hợp; thông báo tiếng Việt dễ hiểu; chặn gửi lặp khi đang xử lý; thao tác lỗi có thể thử lại sau khi nguyên nhân được khắc phục.
 - [ ] **S6-B01 — AI gợi ý có giải thích (bonus):** Phụ huynh và gia sư muốn hiểu vì sao một cặp phù hợp. **Done:** dùng nhà cung cấp AI thật để xếp hạng tối đa 20 ứng viên đã lọc cho mỗi danh sách; mức phù hợp là một giá trị chung cho cặp, hiển thị giống nhau ở hai phía; trả tối đa 5 kết quả kèm giải thích; chỉ gửi dữ liệu ẩn danh được cho phép; đầu ra được kiểm tra; lỗi/đầu ra sai/quá thời gian chuyển sang luật trong dưới 10 giây và vẫn giữ các điều kiện bắt buộc.
+
+Các US và yêu cầu của Sprint 6: S6-01 nghiệm thu xuyên suốt [US-01](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIES.md#us-01-đăng-ký-đăng-nhập-và-phân-quyền) đến [US-07](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIES.md#us-07-đặt-lịch-học-thử-sau-khi-kết-nối) và [NFR-03](../Requirement.md#2-yêu-cầu-phi-chức-năng); S6-02 theo [NFR-011](../Requirement.md#2-yêu-cầu-phi-chức-năng); S6-B01 theo [US-05](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIES.md#us-05-matching-hai-chiều-dạng-thẻ-kèm-mức-phù-hợp-lấy-cảm-hứng-cách-matching-tinder) và các requirements ([FR-05](../Requirement.md#1-yêu-cầu-chức-năng), [NFR-07](../Requirement.md#2-yêu-cầu-phi-chức-năng), [NFR-08](../Requirement.md#2-yêu-cầu-phi-chức-năng)).
 
 ## Cách ghi nhận kết quả
 

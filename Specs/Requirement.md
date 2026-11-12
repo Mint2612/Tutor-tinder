@@ -35,6 +35,7 @@
 | NFR-08 | Độ tin cậy | Khi API embedding lỗi hoặc quá 10 giây, tự chuyển sang chấm điểm theo luật; gợi ý thất bại hoàn toàn dưới 1%. Hồ sơ gia sư chưa tạo được vector thì chưa hiển thị, hệ thống tự thử lại | Must |
 | NFR-09 | Dữ liệu xác minh | MVP **không lưu ảnh giấy tờ định danh hay bảng điểm**. Admin xem khi xác minh, chỉ lưu kết quả (đã xác minh hay chưa). Nếu sau này cần lưu thì chỉ Admin xem được và xóa sau khi duyệt | Must |
 | NFR-10 | Chất lượng AI | Kiểm thử tay (checklist), không cần tự động hóa: (a) đổi tên, giới tính, trường trong hồ sơ mẫu thì top 3 không đổi; (b) chạy cùng đầu vào 3 lần ra cùng thứ tự | Should |
+NFR-11 | Khả năng sử dụng | Mọi màn hình chính có trạng thái tải, trống và lỗi; thông báo bằng tiếng Việt dễ hiểu; chặn gửi lặp khi đang xử lý.| Must |
 
 ## 3. Chỉ số đo lường
 
