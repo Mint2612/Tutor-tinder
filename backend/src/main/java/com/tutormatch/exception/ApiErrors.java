@@ -3,23 +3,15 @@ package com.tutormatch.exception;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.http.*;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.MissingServletRequestParameterException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.multipart.MaxUploadSizeExceededException;
-import org.springframework.web.multipart.support.MissingServletRequestPartException;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-import jakarta.validation.ConstraintViolationException;
 
 @RestControllerAdvice
 public class ApiErrors {
-
   private static final Logger LOG = LoggerFactory.getLogger(ApiErrors.class);
 
   @ExceptionHandler(BusinessException.class)
@@ -36,11 +28,11 @@ public class ApiErrors {
   @ExceptionHandler({
     MethodArgumentNotValidException.class,
     IllegalArgumentException.class,
-    HttpMessageNotReadableException.class,
-    MaxUploadSizeExceededException.class,
-    ConstraintViolationException.class,
-    MissingServletRequestParameterException.class,
-    MissingServletRequestPartException.class
+    org.springframework.http.converter.HttpMessageNotReadableException.class,
+    org.springframework.web.multipart.MaxUploadSizeExceededException.class,
+    jakarta.validation.ConstraintViolationException.class,
+    org.springframework.web.bind.MissingServletRequestParameterException.class,
+    org.springframework.web.multipart.support.MissingServletRequestPartException.class
   })
   ResponseEntity<?> invalid(Exception e) {
     return ResponseEntity.badRequest()
@@ -53,7 +45,7 @@ public class ApiErrors {
         .body(Map.of("message", "Dữ liệu đã tồn tại hoặc yêu cầu đang chờ xử lý."));
   }
 
-  @ExceptionHandler(ConcurrencyFailureException.class)
+  @ExceptionHandler(org.springframework.dao.ConcurrencyFailureException.class)
   ResponseEntity<?> concurrent(Exception e) {
     return ResponseEntity.status(409)
         .body(Map.of("message", "Yêu cầu đang được cập nhật. Vui lòng thử lại."));
@@ -73,7 +65,7 @@ public class ApiErrors {
           };
       return ResponseEntity.status(er.getStatusCode()).body(Map.of("message", message));
     }
-    LOG.error("Unhandled API failure", e); // giữ stack trace để debug
+    LOG.error("Unhandled API failure", e);
     return ResponseEntity.internalServerError()
         .body(Map.of("message", "Có lỗi hệ thống. Vui lòng thử lại sau."));
   }
