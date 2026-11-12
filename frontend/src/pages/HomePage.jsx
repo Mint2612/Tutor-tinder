@@ -22,7 +22,7 @@ export function HomePage() {
               user
                 ? user.role === "PARENT"
                   ? navigate("students")
-                  : navigate(user.role === "TUTOR" ? "tutor" : "admin")
+                  : navigate(user.role === "TUTOR" ? "profile" : "admin")
                 : setPage("register")
             }
           >

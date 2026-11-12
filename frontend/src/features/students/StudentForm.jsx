@@ -164,7 +164,8 @@ export function StudentForm({ initial, save, cancel, busy }) {
         />
         <span>
           Tôi là phụ huynh / người giám hộ và đồng ý lưu thông tin này để tìm
-          gia sư. Chỉ các đặc điểm học tập đã ẩn danh được gửi đến dịch vụ AI.
+          gia sư. Tên, trường và thông tin liên hệ của con không được chia sẻ cho
+          gia sư trước khi hai bên cùng OK và Match.
         </span>
       </label>
       <div className="row">
