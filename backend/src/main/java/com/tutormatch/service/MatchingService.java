@@ -135,12 +135,11 @@ public class MatchingService {
   public Result act(Account user,Action action) {
     role(user);
     boolean parent=user.role().equals("PARENT");
-    // Account -> profile -> pair -> quota. Lock active owners before profile writes, so a
-    // request authenticated just before account deletion cannot recreate a closed pair.
-    var found=tutors.find(action.tutorId());
-    require(tutorRepository.lockActiveOwner(found.userId()),404,"Hồ sơ không còn hoạt động.");
-    var t=tutors.lock(action.tutorId());
-    if(!parent) require(t.userId().equals(user.id()),404,"Không tìm thấy cặp phù hợp.");
+    // Gia sư chỉ thao tác trên hồ sơ của chính mình: kiểm tra TRƯỚC khi khóa bất cứ hàng nào.
+    var found = parent ? tutors.find(action.tutorId()) : tutors.own(user.id());
+    require(parent || found.id().equals(action.tutorId()), 404, "Không tìm thấy cặp phù hợp.");
+    require(tutorRepository.lockActiveOwner(found.userId()), 404, "Hồ sơ không còn hoạt động.");
+    var t = tutors.lock(found.id());
     tutors.publicTutor(t.id());
     var s=parent ? students.owned(action.studentId(),user.id()) : studentRepository.findById(action.studentId())
         .orElseThrow(() -> new BusinessException(404,"Không tìm thấy cặp phù hợp."));
