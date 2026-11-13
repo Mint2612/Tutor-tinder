@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { Availability } from "../../components/shared";
 import { money, levelText } from "../../lib/constants";
 
-export function MatchingCard({ card, busy, saved = false, onChoose }) {
+export function MatchingCard({ card, busy, saved = false, onChoose, onDetail }){
   const start = useRef(null);
   const [offset, setOffset] = useState(0);
   const tutor = card.tutor;
@@ -57,6 +57,9 @@ export function MatchingCard({ card, busy, saved = false, onChoose }) {
           </details>
           {card.expiresAt && card.status !== "MATCHED" && <p className="fineprint">Chờ phản hồi đến {new Date(card.expiresAt).toLocaleString("vi-VN")}</p>}
           {saved && <p role="status">{card.status === "MATCHED" ? "Hai bên đã cùng OK. Đã tạo Match; thông tin liên hệ vẫn được bảo vệ." : "Bạn đã OK. Đang chờ bên kia phản hồi."}</p>}
+          {saved && card.status === "MATCHED" && (
+            <button className="secondary" onClick={onDetail}>Xem hồ sơ & xác nhận kết nối</button>
+          )}
         </div>
       </article>
       {!saved && <>

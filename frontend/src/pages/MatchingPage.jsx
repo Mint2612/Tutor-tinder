@@ -3,11 +3,13 @@ import { useWorkspace } from "../hooks/useWorkspace";
 import { api } from "../services/api";
 import { PageHeading, Empty, StudentPicker } from "../components/shared";
 import { MatchingCard } from "../features/discovery/MatchingCard";
+import { MatchDetail } from "../features/discovery/MatchDetail";
 
 export function MatchingPage({ saved = false }) {
   const { user, students, selected, setSelected, busy, run, setNotification, navigate } = useWorkspace();
   const [refresh, setRefresh] = useState(0);
   const [snapshot, setSnapshot] = useState(null);
+  const [detail, setDetail] = useState(null);
   const parent = user.role === "PARENT";
   const key = `${user.id}:${selected}:${refresh}`;
   const hasProfile = !parent || !!selected;
@@ -51,9 +53,13 @@ export function MatchingPage({ saved = false }) {
       <p className="matching-limits">Còn {feed.limits.totalRemaining}/10 lượt OK hôm nay · {feed.limits.incomingRemaining}/3 lượt OK vào thẻ “Quan tâm bạn”. Mỗi hồ sơ có giới hạn riêng; đặt lại lúc 00:00 giờ Việt Nam.</p>
       {!cards?.length && <Empty title={saved ? "Chưa có lựa chọn đang chờ hoặc Match" : "Chưa có hồ sơ phù hợp"}
         text={saved ? "Lựa chọn OK được lưu tại đây và giữ qua lần tải lại. Cặp bị bỏ qua hoặc hết hạn sẽ đóng." : "Danh sách chỉ gồm hồ sơ đáp ứng môn, lớp, hình thức, lịch và ngân sách. Khi học trực tiếp, hai bên cần cùng tỉnh. Bạn có thể cập nhật hồ sơ hoặc quay lại sau."} />}
-      {saved ? <div className="matching-saved">{cards.map((card) => <MatchingCard key={`${card.studentId}:${card.tutorId}`} card={card} saved busy={busy || loading} />)}</div>
+      {saved ? <div className="matching-saved">{cards.map((card) => <MatchingCard key={`${card.studentId}:${card.tutorId}`} card={card} saved busy={busy || loading} onDetail={() => setDetail(card)} />)}</div>
         : cards?.[0] && <div className="matching-deck"><p>{cards.length} thẻ trong lượt này · Vuốt phải để OK, vuốt trái để Bỏ qua.</p>
           <MatchingCard key={`${cards[0].studentId}:${cards[0].tutorId}`} card={cards[0]} busy={busy || loading} onChoose={(like) => choose(cards[0], like)} /></div>}
     </>}
+    {detail && (
+      <MatchDetail card={detail} run={run} busy={busy}
+        close={() => { setDetail(null); setRefresh((n) => n + 1); }} />
+    )}
   </>;
 }
