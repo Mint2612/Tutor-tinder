@@ -4,6 +4,7 @@ import { api } from "../services/api";
 import { PageHeading, Empty, StudentPicker } from "../components/shared";
 import { MatchingCard } from "../features/discovery/MatchingCard";
 import { MatchDetail } from "../features/discovery/MatchDetail";
+import { AiSuggestions } from "../features/discovery/AiSuggestions";
 
 export function MatchingPage({ saved = false }) {
   const { user, students, selected, setSelected, busy, run, setNotification, navigate } = useWorkspace();
@@ -42,6 +43,10 @@ export function MatchingPage({ saved = false }) {
       title={saved ? "Đã OK & Match" : parent ? "Gặp người đồng hành của con." : "Tìm học sinh phù hợp."}
       description="Chỉ tạo Match khi cả hai cùng OK. Bỏ qua đóng cặp cho cả hai bên, không thông báo lý do." />
     <div className="toolbar">
+      {parent && !saved && selected && (
+        <AiSuggestions key={selected} studentId={selected} run={run} busy={busy}
+          onChanged={() => setRefresh((n) => n + 1)} />
+      )}
       {parent && <StudentPicker disabled={busy || loading} students={students} selected={selected} onChange={setSelected} />}
       <button className="secondary" disabled={busy || loading} onClick={() => setRefresh((n) => n + 1)}>Cập nhật danh sách</button>
     </div>

@@ -9,12 +9,14 @@ import java.util.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+import tools.jackson.databind.json.JsonMapper;
 
 @Repository
 public class TutorRepository {
   private static final String PUBLIC =
       " t.workflow_state='APPROVED' AND t.verification_status='APPROVED' AND t.visible=TRUE AND"
           + " u.email_verified=TRUE AND u.deleted_at IS NULL AND t.deleted_at IS NULL ";
+  private static final JsonMapper VECTORS = JsonMapper.builder().build();
   private final JdbcTemplate db;
   private final NamedParameterJdbcTemplate named;
   private final TutorMapper mapper;
@@ -167,6 +169,8 @@ public class TutorRepository {
             // Profile edits require another review before public display (see withdrawReview below).
             // The public name is the account's display name; the name typed here is the legal one.
             + " display_name=(SELECT full_name FROM users WHERE id=?),legal_name=?,province=?,hourly_rate=?,teaching_description=?,background=?,experience_years=?,teaching_style=?,availability=?,achievements=?,revision=revision+1"
+            // The text that was embedded has changed: drop the old vector so it is recomputed.
+            + ",embedding=NULL,embedding_model=NULL"
             + ",accepting_students=IF(deleted_at IS NOT NULL,TRUE,accepting_students),deleted_at=NULL WHERE id=?",
         user,
         t.fullName().trim(),
@@ -192,6 +196,33 @@ public class TutorRepository {
   public void setPhoto(String id, String url) {
     db.update("UPDATE tutor_profiles SET photo_url=?,revision=revision+1 WHERE id=?", url, id);
     withdrawReview(id);
+  }
+
+  /** Stored vectors that were computed with the same model; tutors without one are absent. */
+  public Map<String, double[]> embeddings(List<String> ids, String model) {
+    var out = new HashMap<String, double[]>();
+    if (ids.isEmpty()) return out;
+    named
+        .queryForList(
+            "SELECT id,embedding FROM tutor_profiles WHERE id IN (:ids) AND embedding IS NOT NULL"
+                + " AND embedding_model=:model",
+            Map.of("ids", ids, "model", model))
+        .forEach(
+            r ->
+                out.put(
+                    r.get("id").toString(),
+                    VECTORS.readValue(r.get("embedding").toString(), double[].class)));
+    return out;
+  }
+
+  /** Writes only if the profile was not edited while the API call was running (same revision). */
+  public void saveEmbedding(String id, int revision, double[] vector, String model) {
+    db.update(
+        "UPDATE tutor_profiles SET embedding=?,embedding_model=? WHERE id=? AND revision=?",
+        json(vector),
+        model,
+        id,
+        revision);
   }
 
   private void withdrawReview(String id) {
