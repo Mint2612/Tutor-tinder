@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class MatchingService {
   private static final ZoneId ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
-  private static final Map<String,String> LEARNING = Map.ofEntries(
+  static final Map<String,String> LEARNING = Map.ofEntries(
       Map.entry("foundation","Củng cố nền tảng"),Map.entry("exam","Chuẩn bị thi"),
       Map.entry("confidence","Tự tin hơn"),Map.entry("visual","Học qua hình ảnh"),
       Map.entry("practice","Thực hành"),Map.entry("discussion","Trao đổi"),
@@ -135,12 +135,11 @@ public class MatchingService {
   public Result act(Account user,Action action) {
     role(user);
     boolean parent=user.role().equals("PARENT");
-    // Account -> profile -> pair -> quota. Lock active owners before profile writes, so a
-    // request authenticated just before account deletion cannot recreate a closed pair.
-    var found=tutors.find(action.tutorId());
-    require(tutorRepository.lockActiveOwner(found.userId()),404,"Hồ sơ không còn hoạt động.");
-    var t=tutors.lock(action.tutorId());
-    if(!parent) require(t.userId().equals(user.id()),404,"Không tìm thấy cặp phù hợp.");
+    // Gia sư chỉ thao tác trên hồ sơ của chính mình: kiểm tra TRƯỚC khi khóa bất cứ hàng nào.
+    var found = parent ? tutors.find(action.tutorId()) : tutors.own(user.id());
+    require(parent || found.id().equals(action.tutorId()), 404, "Không tìm thấy cặp phù hợp.");
+    require(tutorRepository.lockActiveOwner(found.userId()), 404, "Hồ sơ không còn hoạt động.");
+    var t = tutors.lock(found.id());
     tutors.publicTutor(t.id());
     var s=parent ? students.owned(action.studentId(),user.id()) : studentRepository.findById(action.studentId())
         .orElseThrow(() -> new BusinessException(404,"Không tìm thấy cặp phù hợp."));
@@ -166,6 +165,7 @@ public class MatchingService {
     matching.choose(parent,pair,action.interested(),matched,now);
     if(parent) legacy.save(s.id(),t.id(),action.interested());
     if(matched) matching.notifyMatch(s.id(),t.id());
+    if(matched) matching.openConfirmation(s.id(),t.id(),now);
     return new Result(!action.interested() ? "SKIPPED" : matched ? "MATCHED" : "OPEN",matched,
         matched ? "Hai bên đã cùng OK. Bạn có một Match mới!" : action.interested()
             ? "Đã gửi sự quan tâm. Chờ bên kia cùng OK để tạo Match." : "Đã lưu lựa chọn.");

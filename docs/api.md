@@ -1,5 +1,5 @@
 # REST API
-
+# Chưa donedone
 Base `/api`, JSON unless stated. Vietnamese errors use `{ "message": "..." }`. 400 validation, 401 authentication, 403 role/CSRF, 404 inaccessible resources, 409 duplicate/state conflict, 429 throttled, 503 delivery unavailable. IDs are UUIDs. Dates are ISO-8601 instants; frontend displays local time. Session is an opaque HttpOnly SameSite=Lax cookie valid for eight hours. Passwords are BCrypt hashes; session/challenge tokens are SHA-256 digests.
 
 Before mutations: GET `/auth/csrf`, send returned `token` as `X-XSRF-TOKEN`, retain cookies. Login requires verified email only; phone numbers are unverified contact information. No public administrator registration.

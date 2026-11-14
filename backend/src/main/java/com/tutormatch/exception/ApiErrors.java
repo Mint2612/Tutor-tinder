@@ -1,14 +1,19 @@
 package com.tutormatch.exception;
 
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.*;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class ApiErrors {
+  private static final Logger LOG = LoggerFactory.getLogger(ApiErrors.class);
+
   @ExceptionHandler(BusinessException.class)
   ResponseEntity<?> business(BusinessException e) {
     return ResponseEntity.status(e.status()).body(Map.of("message", e.getMessage()));
@@ -48,8 +53,19 @@ public class ApiErrors {
 
   @ExceptionHandler(Exception.class)
   ResponseEntity<?> unexpected(Exception e) {
-    org.slf4j.LoggerFactory.getLogger(getClass())
-        .error("Unhandled API failure: {}", e.getClass().getName());
+    // Lỗi của Spring MVC (sai URL, sai method, sai Content-Type) mang sẵn mã HTTP đúng.
+    if (e instanceof ErrorResponse er) {
+      int status = er.getStatusCode().value();
+      String message =
+          switch (status) {
+            case 404 -> "Không tìm thấy";
+            case 405 -> "Phương thức không được hỗ trợ";
+            case 415 -> "Định dạng dữ liệu không được hỗ trợ";
+            default -> "Yêu cầu không hợp lệ";
+          };
+      return ResponseEntity.status(er.getStatusCode()).body(Map.of("message", message));
+    }
+    LOG.error("Unhandled API failure", e);
     return ResponseEntity.internalServerError()
         .body(Map.of("message", "Có lỗi hệ thống. Vui lòng thử lại sau."));
   }
