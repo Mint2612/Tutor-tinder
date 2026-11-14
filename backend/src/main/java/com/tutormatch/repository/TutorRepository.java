@@ -38,7 +38,7 @@ public class TutorRepository {
         .findFirst();
   }
 
-  /** Reuse a deleted profile's identity so recreating it cannot reset pair decisions or quotas. */
+  /** Reuse a deleted profile's identity so recreating it cannot reset pair decisions. */
   public Optional<TutorProfile> lockForSave(String user) {
     return hydrate(db.queryForList("SELECT * FROM tutor_profiles WHERE user_id=? FOR UPDATE",user))
         .stream().findFirst();
@@ -72,6 +72,12 @@ public class TutorRepository {
   public List<TutorProfile> findAll() {
     return hydrate(
         db.queryForList("SELECT * FROM tutor_profiles WHERE deleted_at IS NULL ORDER BY workflow_state,display_name,id"));
+  }
+
+  /** Ids of featured tutors: listed before every other candidate (see V13__featured_tutor.sql). */
+  public java.util.Set<String> featuredIds() {
+    return new java.util.HashSet<>(
+        db.queryForList("SELECT id FROM tutor_profiles WHERE featured=TRUE AND deleted_at IS NULL", String.class));
   }
 
   public List<TutorProfile> findPublicByIds(List<String> ids) {

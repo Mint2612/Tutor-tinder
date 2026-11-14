@@ -1,5 +1,7 @@
 # Your Sprint Tracking Sheet — TutorMatch
 
+**Cập nhật kỹ thuật 14/11/2026:** S5-01–04, S6-01–02 và bonus S6-B01 đã triển khai và kiểm thử. Xem [bằng chứng và hướng dẫn](../../docs/sprint5-6.md). Dấu tick từng story ghi nhận kiểm chứng kỹ thuật; cột Goal của team/PO giữ lại cho Review chính thức.
+
 6 sprints × 90 phút; mỗi sprint có 60 phút Build & Test theo slide. Ước lượng này dành cho việc hoàn thiện và kiểm thử trên codebase hiện có, nơi phần lớn core đã được triển khai theo [implementation-status.md](implementation-status.md). Team điều chỉnh cam kết theo nhân sự và năng lực thực tế trong Planning.
 
 **Plan là trần số stories đề xuất cho mỗi sprint. Done trong bảng là mục tiêu hoàn thành đủ số đã chọn, chưa phải kết quả nghiệm thu.** Sau Review, thay Done bằng số thực tế và đánh dấu Goal achieved. Ví dụ: cam kết 4, nghiệm thu được 3 thì ghi `4 / 3`.
@@ -58,16 +60,16 @@ Các US của Sprint 4: [US-05](../BEHAVIOR%20%28%20NON%20TECH%20%29/USER_STORIE
 
 ### Sprint 5 — Kết nối và học thử: tối đa 4 stories
 
-- [ ] **S5-01 — Xem hồ sơ chi tiết sau Match:** Hai bên muốn hiểu hồ sơ của nhau trước khi quyết định. **Done:** chỉ cặp đã Match mở được hồ sơ chi tiết; phụ huynh thấy hồ sơ đầy đủ của gia sư, gia sư thấy hồ sơ học sinh chi tiết vẫn ẩn danh; chưa lộ liên hệ, giấy tờ gốc hay bảng điểm.
-- [ ] **S5-02 — Xác nhận kết nối và chia sẻ liên hệ:** Hai bên muốn chỉ trao đổi liên hệ khi cùng đồng ý. **Done:** mỗi bên chọn xác nhận hoặc từ chối đúng một lần; cả hai xác nhận thì cặp thành "Đã kết nối" và hiển thị liên hệ chéo (phía học sinh chỉ có liên hệ phụ huynh); từ chối hoặc quá 3 ngày thì đóng cặp, bên kia nhận thông báo trung tính, chưa lộ liên hệ.
-- [ ] **S5-03 — Đặt lịch học thử:** Hai bên muốn thống nhất lịch buổi học thử. **Done:** chỉ cặp "Đã kết nối" đặt được lịch; một bên đề xuất 1 đến 3 khung giờ, bên kia xác nhận hoặc đề xuất giờ khác; lịch chốt thì cả hai nhận thông báo.
-- [ ] **S5-04 — Lịch còn hiệu lực:** Hai bên muốn biết lịch đang chờ, đã chốt, đã hủy hay hết hạn để xử lý tiếp. **Done:** mỗi cặp chỉ có một lịch đang hoạt động; lịch quá hạn phản hồi hiện trạng thái hết hạn khi truy cập; hủy lịch bắt buộc có lý do; không xác nhận lịch đã hết hạn hay phản hồi lần hai.
+- [x] **S5-01 — Xem hồ sơ chi tiết sau Match:** Hai bên muốn hiểu hồ sơ của nhau trước khi quyết định. **Done:** chỉ cặp đã Match mở được hồ sơ chi tiết; phụ huynh thấy hồ sơ đầy đủ của gia sư, gia sư thấy hồ sơ học sinh chi tiết vẫn ẩn danh; chưa lộ liên hệ, giấy tờ gốc hay bảng điểm.
+- [x] **S5-02 — Xác nhận kết nối và chia sẻ liên hệ:** Hai bên muốn chỉ trao đổi liên hệ khi cùng đồng ý. **Done:** mỗi bên chọn xác nhận hoặc từ chối đúng một lần; cả hai xác nhận thì cặp thành "Đã kết nối" và hiển thị liên hệ chéo (phía học sinh chỉ có liên hệ phụ huynh); từ chối hoặc quá 3 ngày thì đóng cặp, bên kia nhận thông báo trung tính, chưa lộ liên hệ.
+- [x] **S5-03 — Đặt lịch học thử:** Hai bên muốn thống nhất lịch buổi học thử. **Done:** chỉ cặp "Đã kết nối" đặt được lịch; một bên đề xuất 1 đến 3 khung giờ, bên kia xác nhận hoặc đề xuất giờ khác; lịch chốt thì cả hai nhận thông báo.
+- [x] **S5-04 — Lịch còn hiệu lực:** Hai bên muốn biết lịch đang chờ, đã chốt, đã hủy hay hết hạn để xử lý tiếp. **Done:** mỗi cặp chỉ có một lịch đang hoạt động; lịch quá hạn phản hồi hiện trạng thái hết hạn khi truy cập; hủy lịch bắt buộc có lý do; không xác nhận lịch đã hết hạn hay phản hồi lần hai.
 
 ### Sprint 6 — Hoàn thiện: tối đa 2 stories cam kết + 1 bonus (chỉ sửa 2 dòng)
 
-- [ ] **S6-01 — Sử dụng trên máy tính/điện thoại:** Người dùng muốn hoàn thành luồng chính trên thiết bị của mình. **Done:** nghiệm thu trên trình duyệt máy tính và điện thoại từ đăng nhập, hồ sơ, duyệt gia sư, gợi ý hai chiều, Match, xác nhận kết nối đến học thử; kiểm tra thêm đăng ký/xác thực/khôi phục theo Sprint 1; không có lỗi chặn luồng, nội dung bị che hoặc thao tác không sử dụng được; vuốt và nút đều hoạt động.
-- [ ] **S6-02 — Trạng thái rõ ràng và thử lại:** Người dùng muốn biết thao tác đang xử lý, thành công hay thất bại để tiếp tục sử dụng. **Done:** các màn hình chính có trạng thái tải/trống/lỗi phù hợp; thông báo tiếng Việt dễ hiểu; chặn gửi lặp khi đang xử lý; thao tác lỗi có thể thử lại sau khi nguyên nhân được khắc phục.
-- [ ] **S6-B01 — AI gợi ý có giải thích (bonus):** Phụ huynh và gia sư muốn hiểu vì sao một cặp phù hợp. **Done:** dùng nhà cung cấp AI thật để xếp hạng tối đa 20 ứng viên đã lọc cho mỗi danh sách; mức phù hợp là một giá trị chung cho cặp, hiển thị giống nhau ở hai phía; trả tối đa 5 kết quả kèm giải thích; chỉ gửi dữ liệu ẩn danh được cho phép; đầu ra được kiểm tra; lỗi/đầu ra sai/quá thời gian chuyển sang luật trong dưới 10 giây và vẫn giữ các điều kiện bắt buộc.
+- [x] **S6-01 — Sử dụng trên máy tính/điện thoại:** Người dùng muốn hoàn thành luồng chính trên thiết bị của mình. **Done:** nghiệm thu trên trình duyệt máy tính và điện thoại từ đăng nhập, hồ sơ, duyệt gia sư, gợi ý hai chiều, Match, xác nhận kết nối đến học thử; kiểm tra thêm đăng ký/xác thực/khôi phục theo Sprint 1; không có lỗi chặn luồng, nội dung bị che hoặc thao tác không sử dụng được; vuốt và nút đều hoạt động.
+- [x] **S6-02 — Trạng thái rõ ràng và thử lại:** Người dùng muốn biết thao tác đang xử lý, thành công hay thất bại để tiếp tục sử dụng. **Done:** các màn hình chính có trạng thái tải/trống/lỗi phù hợp; thông báo tiếng Việt dễ hiểu; chặn gửi lặp khi đang xử lý; thao tác lỗi có thể thử lại sau khi nguyên nhân được khắc phục.
+- [x] **S6-B01 — AI gợi ý có giải thích (bonus):** Phụ huynh và gia sư muốn hiểu vì sao một cặp phù hợp. **Done:** dùng nhà cung cấp AI thật để xếp hạng tối đa 20 ứng viên đã lọc cho mỗi danh sách; mức phù hợp là một giá trị chung cho cặp, hiển thị giống nhau ở hai phía; trả tối đa 5 kết quả kèm giải thích; chỉ gửi dữ liệu ẩn danh được cho phép; đầu ra được kiểm tra; lỗi/đầu ra sai/quá thời gian chuyển sang luật trong dưới 10 giây và vẫn giữ các điều kiện bắt buộc.
 
 ## Cách ghi nhận kết quả
 

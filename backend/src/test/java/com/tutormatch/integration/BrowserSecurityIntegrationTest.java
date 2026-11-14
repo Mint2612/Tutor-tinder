@@ -20,6 +20,7 @@ import tools.jackson.databind.json.JsonMapper;
 /** Separate context: csrf() test helpers replace the filter repository in other tests. */
 @SpringBootTest
 @AutoConfigureMockMvc
+@org.springframework.test.annotation.DirtiesContext(classMode=org.springframework.test.annotation.DirtiesContext.ClassMode.BEFORE_CLASS)
 class BrowserSecurityIntegrationTest {
   @Autowired MockMvc mvc;
   @Autowired JdbcTemplate db;

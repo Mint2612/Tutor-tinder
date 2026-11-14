@@ -55,7 +55,7 @@ Only email-activated, approved, visible tutors can be discovered. Tutor relation
 
 ## Recommendations and saved interests
 
-Mandatory filters require every requested subject, grade, teaching format, shared weekly slot, budget and the same province for in-person learning. Eligible unseen candidates are ordered deterministically before at most 20 enter AI ranking. The rule score considers shared slots, experience and budget headroom. Up to five validated results are returned.
+Mandatory filters require every requested subject, grade, teaching format, shared weekly slot, budget and the same province for in-person learning. Eligible unseen candidates are ordered deterministically before at most 20 enter AI ranking. The rule score considers shared slots, experience and budget headroom. Up to five validated results are returned by the legacy recommendation route; the matching AI list returns up to ten.
 
 The existing `LlmRanker` boundary is retained for later work. It receives aliases and allowlisted categories, validates output and preserves rule fallback. No AI runtime, model download or live-inference acceptance is part of the current delivery; the application uses deterministic recommendations with empty provider settings.
 

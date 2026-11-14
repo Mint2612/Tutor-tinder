@@ -16,11 +16,19 @@ import org.springframework.web.bind.annotation.*;
 public class MatchingController {
   private final MatchingService matching;
   private final ConnectionService connections;
+  private final com.tutormatch.service.AiMatchingService ai;
 
-  public MatchingController(MatchingService matching, ConnectionService connections) {
+  public MatchingController(MatchingService matching, ConnectionService connections, com.tutormatch.service.AiMatchingService ai) {
     this.matching = matching;
     this.connections = connections;
+    this.ai = ai;
   }
+  @GetMapping("/students/{id}/matching/ai")
+  public List<Card> parentAi(@PathVariable String id,@AuthenticationPrincipal Account u) {
+    return ai.parent(id,u.id());
+  }
+  @GetMapping("/tutor/matching/ai")
+  public List<Card> tutorAi(@AuthenticationPrincipal Account u) { return ai.tutor(u.id()); }
 
   @GetMapping("/students/{id}/matching")
   public Feed parent(@PathVariable String id, @AuthenticationPrincipal Account user) {

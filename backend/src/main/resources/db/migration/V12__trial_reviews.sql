@@ -1,0 +1,8 @@
+CREATE TABLE trial_reviews (
+ id VARCHAR(36) PRIMARY KEY,
+ trial_id VARCHAR(36) NOT NULL UNIQUE,
+ rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+ comment VARCHAR(2000) NOT NULL DEFAULT '',
+ created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+ FOREIGN KEY (trial_id) REFERENCES trial_schedules(id)
+);

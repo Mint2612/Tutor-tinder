@@ -48,6 +48,9 @@ public class LessonRepository {
         id,
         tutorUser);
   }
+  public java.util.Optional<java.util.Map<String,Object>> ownedPair(String id,String tutorUser) {
+    return db.queryForList("SELECT l.student_id,l.tutor_id FROM lesson_requests l JOIN tutor_profiles t ON t.id=l.tutor_id WHERE l.id=? AND t.user_id=?",id,tutorUser).stream().findFirst();
+  }
 
   public List<LessonResponse> list(Account u) {
     String owner = u.role().equals("PARENT") ? "s.parent_id=?" : "t.user_id=?";
@@ -61,10 +64,10 @@ public class LessonRepository {
         .queryForList(
             "SELECT"
                 + " l.id,l.student_id,l.tutor_id,l.status,l.proposed_at,l.expires_at,l.message,l.created_at,s.nickname,t.display_name,CASE"
-                + " WHEN l.status='ACCEPTED' AND l.contact_revoked=FALSE AND s.deleted_at IS NULL AND t.deleted_at IS NULL AND pu.deleted_at IS NULL AND tu.deleted_at IS NULL THEN pu.email ELSE NULL END AS parent_email,CASE WHEN"
-                + " l.status='ACCEPTED' AND l.contact_revoked=FALSE AND s.deleted_at IS NULL AND t.deleted_at IS NULL AND pu.deleted_at IS NULL AND tu.deleted_at IS NULL THEN pu.phone ELSE NULL END AS parent_phone,CASE WHEN"
-                + " l.status='ACCEPTED' AND l.contact_revoked=FALSE AND s.deleted_at IS NULL AND t.deleted_at IS NULL AND pu.deleted_at IS NULL AND tu.deleted_at IS NULL THEN tu.email ELSE NULL END AS tutor_email,CASE WHEN"
-                + " l.status='ACCEPTED' AND l.contact_revoked=FALSE AND s.deleted_at IS NULL AND t.deleted_at IS NULL AND pu.deleted_at IS NULL AND tu.deleted_at IS NULL THEN tu.phone ELSE NULL END AS tutor_phone FROM"
+                + " WHEN l.status='ACCEPTED' AND EXISTS(SELECT 1 FROM matching_pairs mp WHERE mp.student_id=l.student_id AND mp.tutor_id=l.tutor_id AND mp.status='MATCHED' AND mp.parent_confirm='CONFIRM' AND mp.tutor_confirm='CONFIRM') AND l.contact_revoked=FALSE AND s.deleted_at IS NULL AND t.deleted_at IS NULL AND pu.deleted_at IS NULL AND tu.deleted_at IS NULL THEN pu.email ELSE NULL END AS parent_email,CASE WHEN"
+                + " l.status='ACCEPTED' AND EXISTS(SELECT 1 FROM matching_pairs mp WHERE mp.student_id=l.student_id AND mp.tutor_id=l.tutor_id AND mp.status='MATCHED' AND mp.parent_confirm='CONFIRM' AND mp.tutor_confirm='CONFIRM') AND l.contact_revoked=FALSE AND s.deleted_at IS NULL AND t.deleted_at IS NULL AND pu.deleted_at IS NULL AND tu.deleted_at IS NULL THEN pu.phone ELSE NULL END AS parent_phone,CASE WHEN"
+                + " l.status='ACCEPTED' AND EXISTS(SELECT 1 FROM matching_pairs mp WHERE mp.student_id=l.student_id AND mp.tutor_id=l.tutor_id AND mp.status='MATCHED' AND mp.parent_confirm='CONFIRM' AND mp.tutor_confirm='CONFIRM') AND l.contact_revoked=FALSE AND s.deleted_at IS NULL AND t.deleted_at IS NULL AND pu.deleted_at IS NULL AND tu.deleted_at IS NULL THEN tu.email ELSE NULL END AS tutor_email,CASE WHEN"
+                + " l.status='ACCEPTED' AND EXISTS(SELECT 1 FROM matching_pairs mp WHERE mp.student_id=l.student_id AND mp.tutor_id=l.tutor_id AND mp.status='MATCHED' AND mp.parent_confirm='CONFIRM' AND mp.tutor_confirm='CONFIRM') AND l.contact_revoked=FALSE AND s.deleted_at IS NULL AND t.deleted_at IS NULL AND pu.deleted_at IS NULL AND tu.deleted_at IS NULL THEN tu.phone ELSE NULL END AS tutor_phone FROM"
                 + " lesson_requests l JOIN student_profiles s ON s.id=l.student_id JOIN"
                 + " tutor_profiles t ON t.id=l.tutor_id JOIN users pu ON pu.id=s.parent_id JOIN"
                 + " users tu ON tu.id=t.user_id WHERE "

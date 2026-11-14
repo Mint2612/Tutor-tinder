@@ -15,11 +15,13 @@ export function MatchNotifications() {
   }, [user.id]);
   if (!items.length) return null;
   return <aside className="match-notifications" aria-label="Thông báo Match">
-    <p role="status">♡ {items.length} Match mới. Hai bên đã cùng OK!</p>
+    <p role="status">{items.length} thông báo chưa đọc</p>
+    <ul>{items.slice(0, 5).map((item) => <li key={item.id}>{item.eventKey === "MATCH" ? "Bạn có Match mới." : item.message}</li>)}</ul>
     <button disabled={busy} onClick={() => {
       if (user.role === "PARENT") setSelected(items[0].studentId);
       navigate("interests");
     }}>Xem Match</button>
+    {items.some((item) => item.eventKey?.startsWith("TRIAL_")) && <button disabled={busy} onClick={() => navigate("lessons")}>Xem lịch học thử</button>}
     <button className="secondary" disabled={busy} onClick={() => run(async () => {
       await Promise.all(items.map((item) => api(`/matching/notifications/${item.id}/read`, { method: "POST" })));
       setItems([]);

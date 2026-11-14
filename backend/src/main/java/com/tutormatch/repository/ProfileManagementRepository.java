@@ -42,6 +42,9 @@ public class ProfileManagementRepository {
     db.update("UPDATE verification_audit SET reason=NULL WHERE tutor_id=?",tutor);
   }
   private void closePairs(String column,String id) {
+    db.update("DELETE FROM pair_ai_scores WHERE "+column+"=?",id);
+    db.update("UPDATE trial_schedules SET status='CANCELLED',cancellation_reason='Hồ sơ không còn hoạt động',version=version+1 WHERE "+column+"=? AND status IN ('PENDING','CONFIRMED')",id);
+    db.update("UPDATE trial_schedules SET cancellation_reason=NULL,slots='[]',chosen_at=NULL WHERE "+column+"=?",id);
     db.update("UPDATE matching_pairs SET status='SKIPPED' WHERE "+column+"=? AND status IN ('OPEN','MATCHED')",id);
     db.update("DELETE FROM matching_notifications WHERE "+column+"=?",id);
     db.update("UPDATE lesson_requests SET status='REJECTED',responded_at=CURRENT_TIMESTAMP WHERE "+column+"=? AND status='PENDING'",id);

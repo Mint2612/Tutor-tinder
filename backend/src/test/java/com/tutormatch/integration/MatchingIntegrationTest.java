@@ -86,6 +86,15 @@ class MatchingIntegrationTest {
     assertThrows(BusinessException.class,() -> choose(account("TUTOR"),studentId,tutorId,true));
   }
 
+  @Test void parentCardsIncludeTutorAvatarWithoutAddingItToStudentPreviews() throws Exception {
+    String photo="/api/media/avatars/11111111-1111-4111-8111-111111111111.jpg";
+    db.update("UPDATE tutor_profiles SET photo_url=? WHERE id=?",photo,tutorId);
+    assertEquals(photo,incomingTutorCard(studentId,parent.id(),tutorId).tutor().photoUrl());
+    mvc.perform(get("/api/students/"+studentId+"/matching").with(as(parent)))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.cards[0].tutor.photoUrl").value(photo));
+    assertNull(matching.tutorFeed(tutor.id()).cards().stream().filter(c -> c.studentId().equals(studentId)).findFirst().orElseThrow().tutor());
+  }
+
   @Test void tutorLikesFirstThenParentMatchesAndBothReceivePersistentNotifications() {
     assertFalse(choose(tutor,studentId,tutorId,true).matched());
     var first=matching.parentFeed(studentId,parent.id()).cards().getFirst();
@@ -96,8 +105,6 @@ class MatchingIntegrationTest {
     assertEquals(1,matching.notifications(parent).size()); assertEquals(1,matching.notifications(tutor).size());
     assertTrue(choose(parent,studentId,tutorId,true).matched());
     assertEquals(1,matching.notifications(parent).size());
-    assertEquals(9,matching.parentFeed(studentId,parent.id()).limits().totalRemaining());
-    assertEquals(2,matching.parentFeed(studentId,parent.id()).limits().incomingRemaining());
     var note=matching.notifications(parent).getFirst();
     assertThrows(BusinessException.class,() -> matching.readNotification(note.id(),tutor));
     matching.readNotification(note.id(),parent); assertTrue(matching.notifications(parent).isEmpty());
@@ -115,51 +122,33 @@ class MatchingIntegrationTest {
     assertThrows(BusinessException.class,() -> choose(parent,studentId,tutorId,true));
   }
 
-  @Test void incomingQuotaKeepsCardAndStillAllowsSkipAndIsPerStudent() {
-    List<String> ids=new ArrayList<>(); List<Account> owners=new ArrayList<>();
-    for(int i=0;i<4;i++) { var owner=account("TUTOR"); owners.add(owner); var id=teaching(owner); ids.add(id); choose(owner,studentId,id,true); }
-    for(int i=0;i<3;i++) choose(parent,studentId,ids.get(i),true);
-    var card=incomingTutorCard(studentId,parent.id(),ids.get(3));
-    assertFalse(card.canLike());
-    assertEquals(429,assertThrows(BusinessException.class,() -> choose(parent,studentId,ids.get(3),true)).status());
-    assertEquals(7,matching.parentFeed(studentId,parent.id()).limits().totalRemaining());
-    assertFalse(incomingTutorCard(studentId,parent.id(),ids.get(3)).canLike());
-    choose(parent,studentId,ids.get(3),false);
-    String sibling=student(parent);
-    assertEquals(10,matching.parentFeed(sibling,parent.id()).limits().totalRemaining());
-    assertEquals(3,matching.parentFeed(sibling,parent.id()).limits().incomingRemaining());
+  @Test void incomingLikesHaveNoDailyLimitForEitherRole() {
+    for(int i=0;i<5;i++) {
+      var owner=account("TUTOR"); var id=teaching(owner);
+      choose(owner,studentId,id,true);
+      assertTrue(incomingTutorCard(studentId,parent.id(),id).canLike());
+      assertTrue(choose(parent,studentId,id,true).matched());
+      var p=account("PARENT"); var child=student(p);
+      choose(p,child,tutorId,true);
+      assertTrue(matching.tutorFeed(tutor.id()).cards().stream().filter(c -> c.studentId().equals(child)).findFirst().orElseThrow().canLike());
+      assertTrue(choose(tutor,child,tutorId,true).matched());
+    }
   }
 
-  @Test void tutorIncomingQuotaAndDailyResetAreEnforced() {
-    var ids=new ArrayList<String>();
-    for(int i=0;i<4;i++) { var p=account("PARENT"); var s=student(p); ids.add(s); choose(p,s,tutorId,true); }
-    for(int i=0;i<3;i++) choose(tutor,ids.get(i),tutorId,true);
-    assertEquals(429,assertThrows(BusinessException.class,() -> choose(tutor,ids.get(3),tutorId,true)).status());
-    assertFalse(matching.tutorFeed(tutor.id()).cards().stream().filter(c -> c.studentId().equals(ids.get(3))).findFirst().orElseThrow().canLike());
-    db.update("UPDATE matching_daily_usage SET usage_day=DATE_SUB(usage_day,INTERVAL 1 DAY) WHERE actor='TUTOR' AND profile_id=?",tutorId);
-    assertEquals(10,matching.tutorFeed(tutor.id()).limits().totalRemaining());
-    assertTrue(choose(tutor,ids.get(3),tutorId,true).matched());
-  }
-
-  @Test void concurrentLikesCannotExceedDailyTotalAndRetriesDoNotDoubleCount() throws Exception {
+  @Test void concurrentTutorLikesAreUnlimitedAndRetriesAreIdempotent() throws Exception {
     var ids=new ArrayList<String>();
     for(int i=0;i<12;i++) ids.add(student(account("PARENT")));
     var start=new CountDownLatch(1);
     try(var executor=Executors.newFixedThreadPool(12)) {
-      var tasks=new ArrayList<Future<Integer>>();
-      for(var s:ids) tasks.add(executor.submit(() -> { start.await(); try { choose(tutor,s,tutorId,true); return 200; } catch(BusinessException e) { return e.status(); } }));
+      var tasks=new ArrayList<Future<Result>>();
+      for(var s:ids) tasks.add(executor.submit(() -> { start.await(); return choose(tutor,s,tutorId,true); }));
       start.countDown();
-      int ok=0,limited=0;
-      for(var task:tasks) { int status=task.get(30,TimeUnit.SECONDS); if(status==200) ok++; else if(status==429) limited++; else fail("Unexpected "+status); }
-      assertEquals(10,ok); assertEquals(2,limited);
+      for(var task:tasks) assertEquals("OPEN",task.get(30,TimeUnit.SECONDS).status());
     }
-    assertEquals(0,matching.tutorFeed(tutor.id()).limits().totalRemaining());
-    assertTrue(matching.tutorFeed(tutor.id()).cards().stream().allMatch(c -> !c.canLike()));
-    String liked=db.queryForObject("SELECT student_id FROM matching_pairs WHERE tutor_id=? AND tutor_choice='LIKE' LIMIT 1",String.class,tutorId);
-    choose(tutor,liked,tutorId,true);
-    assertEquals(10,db.queryForObject("SELECT total_used FROM matching_daily_usage WHERE actor='TUTOR' AND profile_id=?",Integer.class,tutorId));
-    String skipped=matching.tutorFeed(tutor.id()).cards().getFirst().studentId();
-    choose(tutor,skipped,tutorId,false);
+    choose(tutor,ids.getFirst(),tutorId,true);
+    assertEquals(12,db.queryForObject("SELECT COUNT(*) FROM matching_pairs WHERE tutor_id=? AND tutor_choice='LIKE'",Integer.class,tutorId));
+    assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM matching_daily_usage WHERE profile_id=?",Integer.class,tutorId));
+    assertTrue(matching.tutorFeed(tutor.id()).cards().stream().allMatch(Card::canLike));
   }
 
   @Test void expiryClosesBothFeedsAndLateActionsCannotMatch() {
@@ -171,19 +160,19 @@ class MatchingIntegrationTest {
     assertEquals("EXPIRED",db.queryForObject("SELECT status FROM matching_pairs WHERE student_id=? AND tutor_id=?",String.class,studentId,tutorId));
   }
 
-  @Test void concurrentParentLikesRespectTotalQuotaAndEachStudentIsIndependent() throws Exception {
+  @Test void concurrentParentLikesAreUnlimitedEvenWithExhaustedHistoricalUsage() throws Exception {
+    db.update("INSERT INTO matching_daily_usage(actor,profile_id,usage_day,total_used,incoming_used) VALUES('PARENT',?,CURRENT_DATE,10,3)",studentId);
     var ids=new ArrayList<String>();
-    for(int i=0;i<11;i++) ids.add(teaching(account("TUTOR")));
+    for(int i=0;i<12;i++) ids.add(teaching(account("TUTOR")));
+    assertTrue(matching.parentFeed(studentId,parent.id()).cards().stream().allMatch(Card::canLike));
     var start=new CountDownLatch(1);
-    try(var executor=Executors.newFixedThreadPool(11)) {
-      var tasks=new ArrayList<Future<Integer>>();
-      for(var t:ids) tasks.add(executor.submit(() -> { start.await(); try { choose(parent,studentId,t,true); return 200; } catch(BusinessException e) { return e.status(); } }));
-      start.countDown(); int ok=0,limited=0;
-      for(var task:tasks) { int status=task.get(30,TimeUnit.SECONDS); if(status==200) ok++; else if(status==429) limited++; else fail("Unexpected "+status); }
-      assertEquals(10,ok); assertEquals(1,limited);
+    try(var executor=Executors.newFixedThreadPool(12)) {
+      var tasks=new ArrayList<Future<Result>>();
+      for(var t:ids) tasks.add(executor.submit(() -> { start.await(); return choose(parent,studentId,t,true); }));
+      start.countDown();
+      for(var task:tasks) assertEquals("OPEN",task.get(30,TimeUnit.SECONDS).status());
     }
-    assertEquals(0,matching.parentFeed(studentId,parent.id()).limits().totalRemaining());
-    assertEquals(10,matching.parentFeed(student(parent),parent.id()).limits().totalRemaining());
+    assertEquals(12,matching.parentFeed(studentId,parent.id()).savedCards().size());
   }
 
   @Test void simultaneousReciprocalLikesCreateOneMatchAndExactlyTwoNotices() throws Exception {

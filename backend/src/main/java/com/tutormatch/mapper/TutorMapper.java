@@ -42,6 +42,11 @@ public class TutorMapper {
   public TutorResponse publicResponse(TutorProfile t) {
     return response(t, false, null, null);
   }
+  public TutorResponse previewResponse(TutorProfile t) {
+    return new TutorResponse(t.id(),t.displayName(),null,t.subjects(),t.grades(),t.modes(),t.province(),
+        t.hourlyRate(),null,null,null,t.experience(),t.availability(),null,null,
+        t.workflowState(),t.verificationStatus(),t.verifiedAt(),null,null,null,null,null,null,null,null);
+  }
 
   public TutorResponse ownerResponse(TutorProfile t) {
     return response(t, true, null, null);
@@ -59,19 +64,19 @@ public class TutorMapper {
       List<AuditResponse> audit) {
     return new TutorResponse(
         t.id(),
-        t.displayName(),
+        safeText(t.displayName(),privateFields),
         t.photoUrl(),
         t.subjects(),
         t.grades(),
         t.modes(),
         t.province(),
         t.hourlyRate(),
-        t.methodology(),
-        t.style(),
-        t.background(),
+        safeText(t.methodology(),privateFields),
+        safeText(t.style(),privateFields),
+        safeText(t.background(),privateFields),
         t.experience(),
         t.availability(),
-        t.achievements(),
+        safeText(t.achievements(),privateFields),
         privateFields ? t.legalName() : null,
         t.workflowState(),
         t.verificationStatus(),
@@ -83,5 +88,8 @@ public class TutorMapper {
         privateFields ? t.submittedAt() : null,
         documents,
         audit, privateFields ? t.acceptingStudents() : null);
+  }
+  private String safeText(String value,boolean privateFields) {
+    return !privateFields && com.tutormatch.service.ContactInfo.contains(value) ? "" : value;
   }
 }

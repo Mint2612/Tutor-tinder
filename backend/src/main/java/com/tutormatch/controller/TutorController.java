@@ -5,6 +5,7 @@ import com.tutormatch.mapper.TutorMapper;
 import com.tutormatch.model.Account;
 import com.tutormatch.service.AvatarService;
 import com.tutormatch.service.TutorService;
+import com.tutormatch.service.ConnectionService;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,11 +18,13 @@ public class TutorController {
   private final TutorService tutors;
   private final AvatarService avatars;
   private final TutorMapper mapper;
+  private final ConnectionService connections;
 
-  public TutorController(TutorService tutors, AvatarService avatars, TutorMapper mapper) {
+  public TutorController(TutorService tutors, AvatarService avatars, TutorMapper mapper, ConnectionService connections) {
     this.tutors = tutors;
     this.avatars = avatars;
     this.mapper = mapper;
+    this.connections = connections;
   }
 
   @GetMapping("/tutor/profile")
@@ -48,7 +51,8 @@ public class TutorController {
   }
 
   @GetMapping("/tutors/{id}")
-  public TutorResponse details(@PathVariable String id) {
+  public TutorResponse details(@PathVariable String id, @AuthenticationPrincipal Account user) {
+    connections.requireTutorDetail(user, id);
     return mapper.publicResponse(tutors.publicTutor(id));
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { WorkspaceProvider } from "./WorkspaceProvider";
 import { useWorkspace } from "../hooks/useWorkspace";
 import { api } from "../services/api";
@@ -12,10 +12,13 @@ import { StudentsPage } from "../pages/StudentsPage";
 import { MatchingPage } from "../pages/MatchingPage";
 import { MatchNotifications } from "../features/discovery/MatchNotifications";
 import { LessonsPage } from "../pages/LessonsPage";
+import { ReviewsPage } from "../pages/ReviewsPage";
 import { ProfilePage } from "../pages/ProfilePage";
 import { AdminPage } from "../pages/AdminPage";
+import { MonitorPage } from "../pages/MonitorPage";
 
 function Workspace() {
+  const topbarRef = useRef(null);
   const {
     user,
     checking,
@@ -44,6 +47,20 @@ function Workspace() {
     loggedIn,
     logout,
   } = useWorkspace();
+  useLayoutEffect(() => {
+    const topbar = topbarRef.current;
+    if (!topbar) return;
+    const updateHeight = () => document.documentElement.style.setProperty(
+      "--topbar-height", `${topbar.getBoundingClientRect().height}px`,
+    );
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(topbar);
+    return () => {
+      observer.disconnect();
+      document.documentElement.style.removeProperty("--topbar-height");
+    };
+  }, [checking]);
   // Messages sit at the top of the page, but Save buttons are often far below on long forms.
   useEffect(() => {
     if (error || notification) window.scrollTo({ top: 0, behavior: "smooth" });
@@ -56,7 +73,7 @@ function Workspace() {
     );
   return (
     <div className="app">
-      <header className="topbar">
+      <header className="topbar" ref={topbarRef}>
         <button
           className="brand plain"
           disabled={busy}
@@ -136,8 +153,10 @@ function Workspace() {
         {user && page === "discover" && <MatchingPage key={`discover:${user.id}:${selected}`} />}
         {user && page === "interests" && <MatchingPage key={`interests:${user.id}:${selected}`} saved />}
         {user && page === "lessons" && <LessonsPage />}
+        {user?.role === "PARENT" && page === "reviews" && <ReviewsPage />}
         {user && page === "profile" && <ProfilePage />}
         {user && page === "admin" && <AdminPage />}
+        {user?.role === "ADMIN" && page === "monitor" && <MonitorPage />}
       </main>
       <footer>
         <span className="brand">TutorMatch.</span>

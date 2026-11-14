@@ -31,7 +31,7 @@ public class SwipeController {
   @GetMapping("/students/{id}/interests")
   public List<TutorResponse> interests(
       @PathVariable String id, @AuthenticationPrincipal Account u) {
-    return swipes.interests(id, u.id()).stream().map(mapper::publicResponse).toList();
+    return swipes.interests(id, u.id()).stream().map(mapper::previewResponse).toList();
   }
 
   @DeleteMapping("/students/{id}/interests/{tutorId}")

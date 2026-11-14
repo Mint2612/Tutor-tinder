@@ -15,5 +15,5 @@ public final class ConnectionDtos {
   /** Phụ huynh nhận tutor, gia sư nhận student; contact chỉ có khi cả hai đã xác nhận. */
   public record Detail(String studentId, String tutorId, String status, String myDecision,
       boolean connected, Instant expiresAt, TutorResponse tutor, StudentDetail student,
-      Contact contact) {}
+      Contact contact, String learningMode) {}
 }

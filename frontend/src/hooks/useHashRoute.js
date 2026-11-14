@@ -11,8 +11,10 @@ const knownPages = new Set([
   "discover",
   "interests",
   "lessons",
+  "reviews",
   "profile",
   "admin",
+  "monitor",
 ]);
 function readRoute() {
   const [path, query = ""] = window.location.hash

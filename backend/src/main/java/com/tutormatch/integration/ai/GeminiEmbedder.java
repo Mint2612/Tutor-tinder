@@ -62,17 +62,21 @@ public class GeminiEmbedder implements TextEmbedder {
                 HttpRequest.BodyPublishers.ofString(
                     json.writeValueAsString(Map.of("requests", requests))))
             .build();
-    var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+    var response = client.send(request, info -> new HttpLlmRanker.LimitedBody(1024 * 1024));
     if (response.statusCode() / 100 != 2)
       throw new IllegalStateException("Embedding provider status " + response.statusCode());
     var embeddings = json.readTree(response.body()).path("embeddings");
-    if (embeddings.size() != texts.size()) throw new IllegalStateException("Bad embedding count");
+    if (!embeddings.isArray() || embeddings.size() != texts.size()) throw new IllegalStateException("Bad embedding count");
     var result = new ArrayList<double[]>();
     for (var item : embeddings) {
       var values = item.path("values");
-      if (values.size() != DIMENSIONS) throw new IllegalStateException("Bad embedding size");
+      if (!values.isArray() || values.size() != DIMENSIONS) throw new IllegalStateException("Bad embedding size");
       double[] vector = new double[DIMENSIONS];
-      for (int i = 0; i < DIMENSIONS; i++) vector[i] = values.get(i).asDouble();
+      for (int i = 0; i < DIMENSIONS; i++) {
+        if (!values.get(i).isNumber()) throw new IllegalStateException("Bad embedding value");
+        vector[i] = values.get(i).asDouble();
+        if (!Double.isFinite(vector[i])) throw new IllegalStateException("Bad embedding value");
+      }
       result.add(vector);
     }
     return result;

@@ -147,6 +147,14 @@ class MvpIntegrationTest {
     return JSON.writeValueAsString(o);
   }
 
+  void connectedFixture() {
+    db.update("INSERT IGNORE INTO matching_pairs(student_id,tutor_id,parent_choice,tutor_choice,status,parent_confirm,tutor_confirm,matched_at) VALUES(?,?,'LIKE','LIKE','MATCHED','CONFIRM','CONFIRM',CURRENT_TIMESTAMP)",studentId,tutorId);
+  }
+  org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder matchedTutorDetail() {
+    connectedFixture();
+    return get("/api/tutors/" + tutorId);
+  }
+
   void approveFixture() {
     db.update(
         "UPDATE tutor_profiles SET workflow_state='APPROVED',verification_status='APPROVED' WHERE"
@@ -367,10 +375,10 @@ class MvpIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(header().string("Cache-Control", "no-store"));
     mvc.perform(approve).andExpect(status().isOk());
-    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent))).andExpect(status().isOk());
+    mvc.perform(matchedTutorDetail().with(as(parent))).andExpect(status().isOk());
     // Saving profile information withdraws approval.
     tutors.save(tutor.id(), teaching());
-    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent))).andExpect(status().isNotFound());
+    mvc.perform(matchedTutorDetail().with(as(parent))).andExpect(status().isNotFound());
     // New evidence withdraws it until the tutor submits again and an admin reads it.
     mvc.perform(
             multipart("/api/tutor/documents")
@@ -380,7 +388,7 @@ class MvpIntegrationTest {
                 .with(as(tutor))
                 .with(csrf()))
         .andExpect(status().isOk());
-    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent))).andExpect(status().isNotFound());
+    mvc.perform(matchedTutorDetail().with(as(parent))).andExpect(status().isNotFound());
     mvc.perform(post("/api/tutor/submit").with(as(tutor)).with(csrf())).andExpect(status().isOk());
     mvc.perform(approve).andExpect(status().isBadRequest());
   }
@@ -400,6 +408,7 @@ class MvpIntegrationTest {
         .andExpect(jsonPath("$[0].tutor.id").value(tutorId));
     mvc.perform(get("/api/students/" + studentId + "/recommendations").with(as(other)))
         .andExpect(status().isNotFound());
+    connectedFixture();
     String payload =
         body(
             Map.of(
@@ -530,6 +539,7 @@ class MvpIntegrationTest {
 
   @Test
   void expiredRequestsDoNotExposeContactsAndCannotBeAccepted() throws Exception {
+    connectedFixture();
     approveFixture();
     String id = UUID.randomUUID().toString();
     db.update(
@@ -639,6 +649,7 @@ class MvpIntegrationTest {
 
   @Test
   void concurrentPendingRequestsArePreventedByDatabaseConstraint() throws Exception {
+    connectedFixture();
     approveFixture();
     String payload =
         body(
@@ -689,7 +700,7 @@ class MvpIntegrationTest {
     mvc.perform(get("/api/students/" + studentId + "/recommendations").with(as(parent)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].tutor.id").value(tutorId));
-    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent)))
+    mvc.perform(matchedTutorDetail().with(as(parent)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.user_id").doesNotExist())
         .andExpect(jsonPath("$.submission_id").doesNotExist())
@@ -975,7 +986,7 @@ class MvpIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.achievements").value("Giải Nhì Toán cấp tỉnh, GPA 3.6/4"));
     approveFixture();
-    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent)))
+    mvc.perform(matchedTutorDetail().with(as(parent)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.achievements").value("Giải Nhì Toán cấp tỉnh, GPA 3.6/4"));
     request.put("achievements", "x".repeat(1001));
@@ -1054,12 +1065,12 @@ class MvpIntegrationTest {
         .andExpect(jsonPath("$.workflow_state").value("DRAFT"))
         .andExpect(jsonPath("$.verification_status").value("PENDING"))
         .andExpect(jsonPath("$.full_name").value("Nguyễn Văn Tên Mới"));
-    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent))).andExpect(status().isNotFound());
+    mvc.perform(matchedTutorDetail().with(as(parent))).andExpect(status().isNotFound());
     assertTrue(recommendations.recommend(studentId, parent.id()).stream()
         .noneMatch(r -> r.tutor().id().equals(tutorId)));
     approveFixture();
     // Once approved again, parents see the account's display name (not the legal name) and the new rate.
-    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent)))
+    mvc.perform(matchedTutorDetail().with(as(parent)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.display_name").value("Fixture TUTOR"))
         .andExpect(jsonPath("$.hourly_rate").value(120000));
@@ -1068,7 +1079,7 @@ class MvpIntegrationTest {
     approveFixture();
     mvc.perform(delete("/api/tutor/photo").with(as(tutor)).with(csrf())).andExpect(status().isOk());
     assertEquals("DRAFT", tutors.own(tutor.id()).workflowState());
-    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent))).andExpect(status().isNotFound());
+    mvc.perform(matchedTutorDetail().with(as(parent))).andExpect(status().isNotFound());
   }
 
   @Test
@@ -1119,7 +1130,7 @@ class MvpIntegrationTest {
   void theRegistrationNameIsPublicAndTheProfileNameIsALegalNameOnlyAdminsSee() throws Exception {
     approveFixture();
     // The tutor's public name is the account's name; the name typed in the profile is the legal one.
-    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent)))
+    mvc.perform(matchedTutorDetail().with(as(parent)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.display_name").value("Fixture TUTOR"))
         .andExpect(jsonPath("$.full_name").doesNotExist());
@@ -1132,7 +1143,7 @@ class MvpIntegrationTest {
     mvc.perform(get("/api/admin/tutors").with(as(admin)))
         .andExpect(jsonPath("$[?(@.id=='" + tutorId + "')].full_name").value("Gia sư kiểm thử"));
     assertFalse(
-        mvc.perform(get("/api/tutors/" + tutorId).with(as(parent)))
+        mvc.perform(matchedTutorDetail().with(as(parent)))
             .andReturn()
             .getResponse()
             .getContentAsString()
@@ -1149,7 +1160,7 @@ class MvpIntegrationTest {
                 .content(body(Map.of("name", "Cô Hoa Toán", "phone", "+84901234567"))))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.name").value("Cô Hoa Toán"));
-    mvc.perform(get("/api/tutors/" + tutorId).with(as(parent)))
+    mvc.perform(matchedTutorDetail().with(as(parent)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.display_name").value("Cô Hoa Toán"));
     mvc.perform(get("/api/tutor/profile").with(as(tutor)))
@@ -1596,7 +1607,7 @@ class MvpIntegrationTest {
     for (String bad :
         List.of(
             "{\"name\":\"\",\"phone\":\"+84911111111\"}",
-            "{\"name\":\"Tên\",\"phone\":\"0911111111\"}",
+            "{\"name\":\"Tên\",\"phone\":\"090123\"}",
             "{\"name\":\"Tên\"}")) {
       mvc.perform(
               put("/api/account")

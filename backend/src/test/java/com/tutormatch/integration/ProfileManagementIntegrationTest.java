@@ -71,7 +71,7 @@ class ProfileManagementIntegrationTest {
     matching.act(parent,new Action(studentId,tutorId,true));
     matching.act(tutor,new Action(studentId,tutorId,true));
   }
-  @Test void hidingChildBlocksBothDirectionsAndRestoringKeepsDecisionsAndQuota() throws Exception {
+  @Test void hidingChildBlocksBothDirectionsAndRestoringKeepsDecisions() throws Exception {
     mvc.perform(put("/api/students/"+studentId+"/visibility").with(as(other)).with(csrf()).contentType("application/json").content("{\"visible\":false}"))
         .andExpect(status().isNotFound());
     management.studentVisibility(studentId,parent,false);
@@ -86,10 +86,10 @@ class ProfileManagementIntegrationTest {
     assertEquals(1,matching.parentFeed(studentId,parent.id()).savedCards().size());
     assertTrue(matching.tutorFeed(tutor.id()).savedCards().stream().anyMatch(c -> c.studentId().equals(studentId)));
     management.studentVisibility(studentId,parent,true);
-    assertEquals(9,matching.parentFeed(studentId,parent.id()).limits().totalRemaining());
   }
   @Test void childDeletionScrubsDataClosesPairsAndKeepsLessonHistoryWithoutContacts() throws Exception {
     String sibling=student(); matched();
+    db.update("UPDATE matching_pairs SET parent_confirm='CONFIRM',tutor_confirm='CONFIRM' WHERE student_id=? AND tutor_id=?",studentId,tutorId);
     var lesson=lessons.request(parent,new LessonRequests.Create(studentId,tutorId,Instant.now().plusSeconds(86400),"Học thử"));
     lessons.respond(tutor,lesson.id(),new LessonRequests.Respond("ACCEPTED"));
     mvc.perform(delete("/api/students/"+studentId).with(as(parent)).with(csrf()).contentType("application/json").content("{\"confirmation\":\"DELETE\"}"))
@@ -121,8 +121,9 @@ class ProfileManagementIntegrationTest {
     mvc.perform(put("/api/tutor/availability").with(as(parent)).with(csrf()).contentType("application/json").content("{\"acceptingStudents\":false}"))
         .andExpect(status().isForbidden());
   }
-  @Test void deletingTutorProfileCleansFilesAndRecreationRequiresReviewWithoutResettingQuota() throws Exception {
+  @Test void deletingTutorProfileCleansFilesAndRecreationRequiresReviewWithoutResettingDecisions() throws Exception {
     matched();
+    db.update("UPDATE matching_pairs SET parent_confirm='CONFIRM',tutor_confirm='CONFIRM' WHERE student_id=? AND tutor_id=?",studentId,tutorId);
     var lesson=lessons.request(parent,new LessonRequests.Create(studentId,tutorId,Instant.now().plusSeconds(86400),"Học thử"));
     lessons.respond(tutor,lesson.id(),new LessonRequests.Respond("ACCEPTED"));
     verification.upload(tutor.id(),"test.pdf","application/pdf","%PDF-1.4\nTEST\n%%EOF".getBytes());
@@ -136,7 +137,7 @@ class ProfileManagementIntegrationTest {
     var restored=tutors.save(tutor.id(),request());
     assertEquals(tutorId,restored.id()); assertEquals("DRAFT",restored.workflowState());
     assertFalse(restored.visible()); assertTrue(restored.acceptingStudents());
-    assertEquals(1,db.queryForObject("SELECT total_used FROM matching_daily_usage WHERE actor='TUTOR' AND profile_id=?",Integer.class,tutorId));
+    assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM matching_daily_usage WHERE actor='TUTOR' AND profile_id=?",Integer.class,tutorId));
     assertEquals("SKIPPED",db.queryForObject("SELECT status FROM matching_pairs WHERE student_id=? AND tutor_id=?",String.class,studentId,tutorId));
     mvc.perform(get("/api/lessons").with(as(parent))).andExpect(status().isOk())
         .andExpect(jsonPath("$[0].tutor_email").isEmpty()).andExpect(jsonPath("$[0].tutor_phone").isEmpty());
