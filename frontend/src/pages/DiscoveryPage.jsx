@@ -22,7 +22,7 @@ export function DiscoveryPage() {
     <>
       <PageHeading
         eyebrow="MỘT NGƯỜI THẦY. NHIỀU KHỞI ĐẦU."
-        title="Gặp người đồng hành của con."
+        title="Gặp người đồng hành của bạn."
         description="Lướt để tìm hiểu. Quyền quyết định luôn ở gia đình bạn."
       />
       <div className="toolbar">

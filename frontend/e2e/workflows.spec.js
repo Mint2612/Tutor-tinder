@@ -299,10 +299,68 @@ test("matching, profile management, account deletion and password reset", async 
   await expect(tutorPage.getByText("Hai bên đã cùng OK. Bạn có một Match mới!", { exact: true })).toBeVisible();
   await tutorPage.getByRole("button", { name: "Đã OK & Match", exact: true }).click();
   await expect(tutorPage.locator(".matching-card").getByText("✓ Đã Match", { exact: true })).toBeVisible();
-  await page.reload();
+  await page.bringToFront();
   await expect(page.locator(".matching-card").getByText("✓ Đã Match", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Thông báo Match")).toBeVisible();
   expect((await (await page.request.get("/api/lessons")).json()).length).toBe(0);
+
+  // Sprint 5: detail remains anonymous until both participants confirm connection.
+  const detailButton = { name: "Xem hồ sơ & xác nhận kết nối", exact: true };
+  await page.getByRole("button", detailButton).click();
+  const parentDetail = page.getByRole("dialog", { name: "Hồ sơ chi tiết" });
+  await expect(parentDetail.getByRole("heading", { name: `Gia sư ${suffix}` })).toBeVisible();
+  await expect(parentDetail).not.toContainText(tutorEmail);
+  await parentDetail.getByRole("button", { name: "Xác nhận kết nối", exact: true }).click();
+  await expect(parentDetail.getByRole("status")).toContainText("Đang chờ bên kia");
+  await expect(parentDetail).not.toContainText(tutorEmail);
+  await parentDetail.getByRole("button", { name: "Đóng cửa sổ", exact: true }).click();
+  await tutorPage.getByRole("button", detailButton).click();
+  const tutorDetail = tutorPage.getByRole("dialog", { name: "Hồ sơ chi tiết" });
+  await expect(tutorDetail.getByRole("heading", { name: "Học sinh lớp 6" })).toBeVisible();
+  await expect(tutorDetail).not.toContainText(parentEmail);
+  await expect(tutorDetail).not.toContainText("Con kiểm thử");
+  await tutorDetail.getByRole("button", { name: "Xác nhận kết nối", exact: true }).click();
+  await expect(tutorDetail.locator(".contact")).toContainText(parentEmail);
+  await tutorDetail.getByRole("button", { name: "Đóng cửa sổ", exact: true }).click();
+  await page.getByRole("button", detailButton).click();
+  await expect(parentDetail.locator(".contact")).toContainText(tutorEmail);
+  await expect(parentDetail.getByRole("button", { name: "Xác nhận kết nối", exact: true })).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  // Sprint 5/6: proposal, a recoverable network error, counterproposal, confirmation and cancellation.
+  const localTime = (days) => {
+    const d = new Date(Date.now() + days * 86400000);
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  };
+  await parentDetail.getByLabel("Giờ đề xuất 1", { exact: true }).fill(localTime(2));
+  await parentDetail.getByRole("button", { name: "Thêm giờ đề xuất", exact: true }).click();
+  await parentDetail.getByLabel("Giờ đề xuất 2", { exact: true }).fill(localTime(3));
+  await page.route("**/api/trials", (route) => route.abort("failed"), { times: 1 });
+  await parentDetail.getByRole("button", { name: "Gửi đề xuất học thử", exact: true }).click();
+  await expect(parentDetail.getByRole("alert")).toContainText("Không thể kết nối");
+  await parentDetail.getByRole("button", { name: "Gửi đề xuất học thử", exact: true }).click();
+  await expect(parentDetail.getByText("Chờ phản hồi", { exact: true })).toBeVisible();
+  await tutorPage.getByRole("button", detailButton).click();
+  await tutorDetail.getByRole("button", { name: "Đề xuất giờ khác", exact: true }).click();
+  await tutorDetail.getByLabel("Giờ đề xuất 1", { exact: true }).fill(localTime(4));
+  await tutorDetail.getByRole("button", { name: "Gửi đề xuất học thử", exact: true }).click();
+  await expect(tutorDetail.getByText("Bạn đã đề xuất; đang chờ bên kia phản hồi.", { exact: true })).toBeVisible();
+  await parentDetail.getByRole("button", { name: "Cập nhật lịch", exact: true }).click();
+  await parentDetail.getByRole("combobox", { name: "Chọn giờ học thử", exact: true }).selectOption({ index: 1 });
+  await parentDetail.getByRole("button", { name: "Chốt giờ học thử", exact: true }).click();
+  await expect(parentDetail.getByText("Đã chốt", { exact: true })).toBeVisible();
+  await parentDetail.screenshot({ path: `test-results/sprint56-trial-${testInfo.project.name}.png` });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await tutorDetail.getByRole("button", { name: "Cập nhật lịch", exact: true }).click();
+  await expect(tutorDetail.getByText("Đã chốt", { exact: true })).toBeVisible();
+  await tutorDetail.getByRole("button", { name: "Hủy lịch học thử", exact: true }).click();
+  await expect(tutorDetail.getByRole("button", { name: "Xác nhận hủy lịch", exact: true })).toBeDisabled();
+  await tutorDetail.getByLabel("Lý do hủy lịch", { exact: true }).fill("Đổi kế hoạch kiểm thử");
+  await tutorDetail.getByRole("button", { name: "Xác nhận hủy lịch", exact: true }).click();
+  await expect(tutorDetail.getByText(/Lý do: Đổi kế hoạch kiểm thử/)).toBeVisible();
+  await tutorDetail.getByRole("button", { name: "Đóng cửa sổ", exact: true }).click();
+  await parentDetail.getByRole("button", { name: "Cập nhật lịch", exact: true }).click();
+  await expect(parentDetail.getByText(/Lý do: Đổi kế hoạch kiểm thử/)).toBeVisible();
+  await parentDetail.getByRole("button", { name: "Đóng cửa sổ", exact: true }).click();
 
   const secondStudent = await createStudent(page.request, {
     nickname: "Học sinh thứ hai", grade: 6, subjects: ["Toán"], province: "Hà Nội",
@@ -317,8 +375,8 @@ test("matching, profile management, account deletion and password reset", async 
   await expect(page.locator(".matching-card").getByText("✓ Đã Match", { exact: true })).toBeVisible();
   await page.screenshot({ path: `test-results/sprint4-${testInfo.project.name}.png`, fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  // Fill the tutor's remaining daily budget through the real API, then verify the disabled UI.
-  for (let i = 0; i < 9; i++) {
+  // Exceed the former daily OK limit through the API; the UI must stay enabled.
+  for (let i = 0; i < 12; i++) {
     const s = await createStudent(page.request, {
       nickname: `Hồ sơ giới hạn ${i}`, grade: 6, subjects: ["Toán"], province: "Hà Nội",
       mode: "ONLINE", budget: 200000, availability: ["1_EVENING"], needs: "Củng cố kiến thức", survey, consent: true,
@@ -331,12 +389,12 @@ test("matching, profile management, account deletion and password reset", async 
     expect(response.ok()).toBeTruthy();
   }
   await tutorPage.getByRole("button", { name: "Tìm học sinh", exact: true }).click();
-  await expect(tutorPage.getByRole("button", { name: "OK — quan tâm", exact: true })).toBeDisabled();
+  await expect(tutorPage.getByRole("button", { name: "OK — quan tâm", exact: true })).toBeEnabled();
   await expect(tutorPage.getByRole("button", { name: "Bỏ qua", exact: true })).toBeEnabled();
   const capped = await (await tutorPage.request.get("/api/tutor/matching")).json();
-  expect(capped.limits.totalRemaining).toBe(0);
+  expect(capped).not.toHaveProperty("limits");
   await tutorPage.reload();
-  await expect(tutorPage.getByRole("button", { name: "OK — quan tâm", exact: true })).toBeDisabled();
+  await expect(tutorPage.getByRole("button", { name: "OK — quan tâm", exact: true })).toBeEnabled();
   expect((await (await tutorPage.request.get("/api/tutor/matching")).json()).cards[0].studentId).toBe(capped.cards[0].studentId);
   const skipResponse = tutorPage.waitForResponse((response) => response.url().endsWith("/api/matching/actions") && response.request().method() === "POST");
   await tutorPage.getByRole("button", { name: "Bỏ qua", exact: true }).click();

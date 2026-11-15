@@ -1,6 +1,6 @@
-# Implementation delivery — 2026-11-07 (Asia/Ho_Chi_Minh)
+# Implementation delivery — 2026-11-14 (Asia/Ho_Chi_Minh)
 
-The source has been reorganized into explicit backend layers and frontend screens/features. The latest user scope is **Sprints 1–4 only**, with email-only activation and deterministic discovery. AI and new work on Sprints 5–6 are deferred. React, Spring Boot, MariaDB and the original V1/V2 migration files are retained.
+Current scope is **Sprints 1–6**, including mutual connection, protected contacts, bilateral trial scheduling and optional live AI matching. Previously applied migrations are retained. [Sprint 5–6](sprint5-6.md) contains current evidence; dated Sprint 3/4 results below are historical.
 
 ## Delivered behavior
 
@@ -14,9 +14,9 @@ The source has been reorganized into explicit backend layers and frontend screen
 | Verification | Private bounded evidence upload/deletion, submission, current-submission evidence access before admin approval, rejection reasons, visibility control and decision history in the admin UI. |
 | Discovery | Two-way rules-ranked preview cards for each student and approved visible tutor; anonymous student DTOs, incoming-interest priority, pointer swipes/buttons and loading/empty/error states. |
 | Matching | Durable decisions per student/tutor pair, mutual Match, persistent notices for both accounts, seven-day interest expiry, atomic 3 incoming / 10 total OK daily quotas per profile (Vietnam time), idempotent retries and saved OK/Match views. Legacy swipe writes use the same rules. See [Sprint 4 verification](sprint4-matching.md). |
-| Trials (retained existing workflow; outside current scope) | Proposed time/message, unique pending pair, tutor acceptance/rejection, lazy expiration and contact disclosure only after acceptance. Status pages refresh through REST. |
+| Connection and trials | Post-Match detail/confirmation; cross-contact only after both confirm; neutral decline/expiry notices; either side proposes 1-3 start times, counters, confirms or cancels with a reason. One active schedule per pair, version checks and lazy expiry. |
 | Frontend | App/provider, reusable hooks, hash/email routing, pages, feature components and shared UI/API modules. Action locking, abortable page loads, session-expiry handling, form validation and accessible native dialogs. |
-| Local integrations | Mailpit SMTP inbox in Compose. Existing AI adapter retained but disabled; experimental AI additions and setup helper removed. |
+| Local integrations | Mailpit SMTP inbox in Compose. Optional Gemini embedding ranks up to 20 eligible cards for either side, with one persisted value per pair, allowlisted anonymous fields, validated output and fallback within ten seconds. |
 | Verification tooling | MariaDB regression suite, isolated browser-test Compose override, Playwright desktop/mobile workflows and browser checks in CI. The test image seeds Maven dependencies and preserves runtime cache in a dedicated volume. |
 
 ## Latest Sprint 3 verification — 2026-11-07

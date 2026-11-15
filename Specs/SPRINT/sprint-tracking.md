@@ -1,5 +1,7 @@
 # Your Sprint Tracking Sheet — TutorMatch
 
+**Cập nhật kỹ thuật 14/11/2026:** S5-01–04, S6-01–02 và bonus S6-B01 đã triển khai và kiểm thử. Xem [bằng chứng và hướng dẫn](../../docs/sprint5-6.md). Dấu tick từng story ghi nhận kiểm chứng kỹ thuật; cột Goal của team/PO giữ lại cho Review chính thức.
+
 6 sprints × 90 phút; mỗi sprint có 60 phút Build & Test theo slide. Ước lượng này dành cho việc hoàn thiện và kiểm thử trên codebase hiện có, nơi phần lớn core đã được triển khai theo [implementation-status.md](implementation-status.md). Team điều chỉnh cam kết theo nhân sự và năng lực thực tế trong Planning.
 
 **Plan là trần số stories đề xuất cho mỗi sprint. Done trong bảng là mục tiêu hoàn thành đủ số đã chọn, chưa phải kết quả nghiệm thu.** Sau Review, thay Done bằng số thực tế và đánh dấu Goal achieved. Ví dụ: cam kết 4, nghiệm thu được 3 thì ghi `4 / 3`.

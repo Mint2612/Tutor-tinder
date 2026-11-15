@@ -2,7 +2,7 @@
 
 Vietnamese tutor discovery: React + Vite, Java 21 + Spring Boot, MariaDB, Spring Security and Flyway. Parents and approved tutors discover compatible anonymous preview cards, choose OK/Skip and create a mutual Match. Parents manage student profiles; tutors manage teaching profiles; admins review private identity evidence.
 
-Accounts activate through **email only**. Phone numbers are used for contact after trial acceptance. Email uses SMTP; local development includes a Mailpit inbox. The current delivery covers Sprints 1–4 with deterministic filtering/ranking. AI is deferred.
+Accounts activate through **email only**. Contacts are shared after both participants confirm connection. Email uses SMTP; local development includes a Mailpit inbox. Delivery covers Sprints 1–6, including trial scheduling and optional AI ranking with rule fallback. See [Sprint 5–6](docs/sprint5-6.md).
 
 ## Run locally
 
@@ -24,15 +24,16 @@ Admin accounts are created only through `ADMIN_EMAIL` / `ADMIN_PASSWORD` on firs
 
 ## Product flow
 
-Current scope: steps 1–6 (Sprints 1–4). The existing trial-request workflow is retained for a later sprint.
+Current scope: the complete discovery → Match → connection → trial flow (Sprints 1–6).
 
 1. Register, verify email and log in as a parent or tutor.
 2. Parent records consent, creates one or more student profiles and completes the six-question survey.
 3. Tutor creates a teaching profile, uploads private identity evidence and submits it for review.
-4. Admin opens current-submission evidence, approves or rejects with a reason and controls visibility. Tutor edits require renewed approval.
-5. Parents open **Khám phá gia sư** for each student; approved visible tutors open **Tìm học sinh**. Both feeds apply subject, grade, format, schedule and budget constraints, plus the same province for in-person lessons. Ranking uses rules.
+4. Admin opens current-submission evidence, approves or rejects with a reason and controls visibility. Tutor edits require renewed approval. The admin **Giám sát** page shows aggregate counts (accounts, verification queue, Match funnel, trials, 7-day activity, server health) with no personal data.
+5. Parents open **Khám phá gia sư** for each student; approved visible tutors open **Tìm học sinh**. Both feeds apply subject, grade, format, schedule and budget constraints, plus the same province for in-person lessons. Ranking uses rules by default; either side can request up to ten AI-ranked eligible cards in a looping horizontal carousel.
 6. Swipe or use OK/Skip buttons. One OK prioritizes the card for the other side; two OKs create a Match and persistent notifications. **Đã OK & Match** survives refresh. Each profile has 10 OK/day, including at most 3 replies to incoming interest; pending interest expires after 7 days. See [Sprint 4](docs/sprint4-matching.md).
-7. Detailed post-Match profiles, mutual connection confirmation and the new trial scheduling flow are Sprint 5 backlog. Earlier detail/trial APIs remain for compatibility; the new Sprint 4 interface does not send a trial request on OK.
+7. Open a matched profile, then confirm or decline connection. Contacts remain hidden until both sides confirm. Pending confirmation expires after three days, with neutral closure notifications.
+8. Either connected participant proposes 1-3 trial start times and the compatible learning format. The other accepts a time or counter-proposes. Each pair has one active schedule; responses expire after three days or before the earliest offered time. Cancelling before the confirmed start requires a reason. Both sides receive durable notifications.
 
 The scope excludes payment, realtime chat, video, calendar reservations and reviews after lessons.
 

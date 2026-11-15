@@ -82,6 +82,9 @@ public class HttpLlmRanker implements LlmRanker {
 
   /** Cancel upstream immediately if the provider exceeds 64 KiB. */
   static final class LimitedBody implements HttpResponse.BodySubscriber<String> {
+    final int limit;
+    LimitedBody() { this(65536); }
+    LimitedBody(int limit) { this.limit=limit; }
     final HttpResponse.BodySubscriber<String> delegate =
         HttpResponse.BodySubscribers.ofString(java.nio.charset.StandardCharsets.UTF_8);
     java.util.concurrent.Flow.Subscription upstream;
@@ -99,7 +102,7 @@ public class HttpLlmRanker implements LlmRanker {
     public void onNext(List<java.nio.ByteBuffer> buffers) {
       for (var buffer : buffers) {
         received += buffer.remaining();
-        if (received > 65536) {
+        if (received > limit) {
           upstream.cancel();
           delegate.onError(new IllegalArgumentException("Oversized AI response"));
           return;

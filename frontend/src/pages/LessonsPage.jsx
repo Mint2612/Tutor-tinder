@@ -1,92 +1,34 @@
-import { useWorkspace } from "../hooks/useWorkspace";
+import { useEffect, useState } from "react";
 import { api } from "../services/api";
-import { statusText } from "../lib/constants";
 import { PageHeading, Empty } from "../components/shared";
+import { TrialScheduler } from "../features/lessons/TrialScheduler";
+import { useWorkspace } from "../hooks/useWorkspace";
 
 export function LessonsPage() {
-  const { user, busy, lessons, setLessons, run, navigate } = useWorkspace();
-  return (
-    <>
-      <PageHeading
-        eyebrow="MỖI KẾT NỐI, MỘT CƠ HỘI"
-        title="Lịch học thử"
-        description="Thông tin liên hệ chỉ được mở sau khi gia sư chấp nhận."
-      />
-      <button
-        className="secondary"
-        disabled={busy}
-        onClick={() => navigate("lessons")}
-      >
-        Cập nhật trạng thái
-      </button>
-      <div className="lesson-list">
-        {lessons.map((l) => (
-          <article className="panel lesson" key={l.id}>
-            <div className="row">
-              <div>
-                <h3>
-                  {l.nickname} <span className="muted">&</span> {l.display_name}
-                </h3>
-                <p>{new Date(l.proposed_at).toLocaleString("vi-VN")}</p>
-              </div>
-              <span className={`status ${l.status.toLowerCase()}`}>
-                {statusText[l.status]}
-              </span>
-            </div>
-            <p>{l.message || "Không có lời nhắn"}</p>
-            {l.status === "ACCEPTED" && (
-              <div className="contact">
-                <strong>Đã kết nối · Liên hệ để thống nhất buổi học</strong>
-                <p>
-                  Phụ huynh: {l.parent_email} · {l.parent_phone}
-                </p>
-                <p>
-                  Gia sư: {l.tutor_email} · {l.tutor_phone}
-                </p>
-              </div>
-            )}
-            {user.role === "TUTOR" && l.status === "PENDING" && (
-              <div className="row">
-                <button
-                  disabled={busy}
-                  onClick={() =>
-                    run(async () => {
-                      await api(`/lessons/${l.id}`, {
-                        method: "PUT",
-                        body: { status: "ACCEPTED" },
-                      });
-                      setLessons(await api("/lessons"));
-                    })
-                  }
-                >
-                  Chấp nhận
-                </button>
-                <button
-                  className="secondary"
-                  disabled={busy}
-                  onClick={() =>
-                    run(async () => {
-                      await api(`/lessons/${l.id}`, {
-                        method: "PUT",
-                        body: { status: "REJECTED" },
-                      });
-                      setLessons(await api("/lessons"));
-                    })
-                  }
-                >
-                  Từ chối
-                </button>
-              </div>
-            )}
-          </article>
-        ))}
-      </div>
-      {!lessons.length && (
-        <Empty
-          title="Chưa có yêu cầu học thử"
-          text="Các lời mời và phản hồi sẽ xuất hiện tại đây."
-        />
-      )}
-    </>
-  );
+  const { user, navigate } = useWorkspace();
+  const [items, setItems] = useState(null);
+  const [error, setError] = useState("");
+  const [refresh, setRefresh] = useState(0);
+  const [pair, setPair] = useState(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    api("/trials", { signal: controller.signal }).then(setItems).catch((e) => {
+      if (e.name !== "AbortError") setError(e.message);
+    });
+    return () => controller.abort();
+  }, [refresh]);
+  const pairs = [...new Map(items?.map((t) => [`${t.studentId}:${t.tutorId}`, t]) || []).values()];
+  return <>
+    <PageHeading eyebrow="THỐNG NHẤT BUỔI HỌC ĐẦU TIÊN" title="Lịch học thử" description="Sau khi hai bên xác nhận kết nối, đề xuất giờ và chốt lịch tại hồ sơ Match." />
+    <button className="secondary" onClick={() => { setPair(null); setItems(null); setError(""); setRefresh((n) => n + 1); }}>Cập nhật trạng thái</button>
+    {user.role === "PARENT" && <button className="text-button" onClick={() => navigate("reviews")}>Đánh giá buổi học đã tham gia</button>}
+    {error && <div className="error" role="alert">{error} <button onClick={() => { setError(""); setRefresh((n) => n + 1); }}>Thử lại</button></div>}
+    {!items && !error && <p role="status">Đang tải lịch học thử…</p>}
+    {items && !items.length && <Empty title="Chưa có yêu cầu học thử" text="Mở Đã OK & Match, xem hồ sơ và xác nhận kết nối để đề xuất lịch." />}
+    {pair ? <TrialScheduler key={`${pair.studentId}:${pair.tutorId}`} studentId={pair.studentId} tutorId={pair.tutorId} />
+      : <div className="lesson-list">{pairs.map((t, i) => <article className="panel" key={`${t.studentId}:${t.tutorId}`}>
+        <h2>Buổi học thử {i + 1}</h2>
+        <button onClick={() => setPair(t)}>Quản lý lịch học thử</button>
+      </article>)}</div>}
+  </>;
 }

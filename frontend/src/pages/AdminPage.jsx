@@ -5,15 +5,19 @@ import { PageHeading, Empty } from "../components/shared";
 
 export function AdminPage() {
   const { busy, queue, setReview, setQueue, run } = useWorkspace();
+  // Hồ sơ đang chờ duyệt lên đầu để admin không phải tìm trong cả danh sách.
+  const pendingFirst = (t) => (t.workflow_state === "PENDING_REVIEW" ? 1 : 0);
+  const waiting = queue.filter((t) => pendingFirst(t)).length;
+  const sorted = [...queue].sort((a, b) => pendingFirst(b) - pendingFirst(a));
   return (
     <>
       <PageHeading
         eyebrow="QUẢN TRỊ & TIN CẬY"
         title="Xét duyệt gia sư"
-        description="Đọc bằng chứng danh tính và đánh giá hồ sơ trước khi phê duyệt."
+        description={`Đọc bằng chứng danh tính và đánh giá hồ sơ trước khi phê duyệt. Đang chờ duyệt: ${waiting} hồ sơ.`}
       />
       <div className="grid">
-        {queue.map((t) => (
+        {sorted.map((t) => (
           <article className="panel" key={t.id}>
             <h3>{t.display_name || "Hồ sơ chưa hoàn thiện"}</h3>
             <span className="status">{statusText[t.workflow_state]}</span>

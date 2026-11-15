@@ -14,7 +14,8 @@ public class RecommendationMapper {
   }
 
   public Map<String, Object> anonymousStudent(StudentProfile s) {
-    return Map.of("grade", s.grade(), "preferences", safePreferences(s.survey()));
+    return Map.of("grade", s.grade(), "preferences", safePreferences(s.survey()),
+        "subjects", s.subjects().stream().filter(SUBJECTS::contains).sorted().toList());
   }
 
   public Map<String, Object> anonymousTutor(String alias, TutorProfile t) {
@@ -26,7 +27,7 @@ public class RecommendationMapper {
         "teachingApproaches",
         approaches(t.style() + " " + t.methodology()),
         "subjects",
-        t.subjects().stream().filter(SUBJECTS::contains).toList());
+        t.subjects().stream().filter(SUBJECTS::contains).sorted().toList());
   }
 
   private static final Set<String> SUBJECTS =
@@ -94,7 +95,7 @@ public class RecommendationMapper {
       var concerns = texts(r.get("concerns"));
       results.add(
           new RecommendationResponse(
-              tutors.publicResponse(candidates.get(id)),
+              tutors.previewResponse(candidates.get(id)),
               level,
               strengths,
               concerns,
@@ -121,7 +122,7 @@ public class RecommendationMapper {
 
   public RecommendationResponse rules(StudentProfile s, TutorProfile t, int score) {
     return new RecommendationResponse(
-        tutors.publicResponse(t),
+        tutors.previewResponse(t),
         score >= 20 ? "STRONG" : "GOOD",
         List.of(
             "Đáp ứng môn học, lớp, lịch và ngân sách",

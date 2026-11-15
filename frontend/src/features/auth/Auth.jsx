@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api } from "../../services/api";
 import { Field, Notice } from "../../components/shared";
+import { phonePattern, phoneHint } from "../../lib/phone";
 
 export function Auth({
   page,
@@ -94,12 +95,14 @@ export function Auth({
                   autoComplete="name"
                 />
               </Field>
-              <Field label="Số điện thoại (ví dụ +84901234567)">
+              <Field label="Số điện thoại">
                 <input
                   name="phone"
                   type="tel"
                   required
-                  pattern="\+[1-9][0-9]{7,14}"
+                  pattern={phonePattern}
+                  placeholder="0901234567 hoặc +84901234567"
+                  title={phoneHint}
                   autoComplete="tel"
                 />
               </Field>

@@ -1,5 +1,7 @@
 # Verification
 
+Current Sprint 5-6 results and commands: [sprint5-6.md](sprint5-6.md). The default backend suite contains 110 executed passing checks and one opt-in live AI check; the live check was also run successfully with the configured provider. All six desktop/mobile browser cases passed, including connection confirmation, counter-proposals, final scheduling, reasoned cancellation and network recovery.
+
 ## Backend regression
 
 The backend suite uses isolated MariaDB:
@@ -41,7 +43,7 @@ npm run test:e2e
 
 Test endpoints: app http://127.0.0.1:33000, backend http://127.0.0.1:38080, Mailpit http://127.0.0.1:38025. Tests create unique fictional parent/tutor accounts and consume their actual SMTP emails from the local inbox. The test-only admin is defined in `compose.e2e.yaml`; do not use that override for application hosting.
 
-The current browser workflow verifies registration/email-link activation, tutor form/evidence upload and renewed approval, parent survey/consent, two-way anonymous discovery, swipe/buttons, incoming tags, mutual Match and notifications, saved choices across refresh, per-student isolation, exhausted quota with Skip still enabled, password-reset email links and sign-in with the changed password. Existing trial/contact logic remains covered by backend regression tests; it is outside the new Sprint 4 UI workflow. A separate scenario checks anonymous role-route protection and recovery from a failed network request. It runs on Chromium desktop and a 360px mobile/touch configuration. These are emulated device checks, not proof of every physical device or browser.
+The current browser workflow verifies registration/email-link activation, tutor form/evidence upload and renewed approval, parent survey/consent, two-way anonymous discovery, swipe/buttons, incoming tags, mutual Match and notifications, saved choices across refresh, per-student isolation, exhausted quota with Skip still enabled, password-reset email links and sign-in with the changed password. The workflow additionally verifies post-Match detail/contact protection, mutual connection confirmation, two-slot trial proposals, recovery after a failed request, counter-proposals, schedule confirmation and reasoned cancellation. A separate scenario checks anonymous role-route protection and recovery from a failed network request. It runs on Chromium desktop and a 360px mobile/touch configuration. These are emulated device checks, not proof of every physical device or browser.
 
 The suite retains screenshots only on failure. Network traces are disabled because verification/reset emails contain single-use secrets. Generated artifacts are ignored by Git.
 
@@ -54,7 +56,7 @@ docker compose -p tutormatch-e2e --env-file .env.example \
 
 ## Deferred work
 
-AI installation, downloads and live inference are deferred. Current recommendations use deterministic rules. Existing trial/AI regression cases remain in the suite to protect code already present, while current delivery focuses on Sprints 1–4.
+Matching uses rules by default. Optional Gemini ranking uses only allowlisted anonymous fields and has a bounded rule fallback. Live verification is opt-in with RUN_LIVE_AI=true and GEMINI_API_KEY in the isolated test container. See [Sprint 5-6](sprint5-6.md).
 
 External SMTP delivery to real recipient inboxes needs configured SMTP credentials. Mailpit acceptance verifies SMTP transport and local email flows.
 
@@ -135,3 +137,11 @@ user/student/tutor profiles, documents, pair decisions, quotas, notices and less
 visual smoke checks on the main app verified the new controls and confirmation dialogs at desktop
 and 360px mobile widths; the smoke script canceled deletion and did not alter existing sample data.
 See [profile/account management](profile-management.md).
+
+## API test script
+
+`node scripts/api-test/api-flow-test.mjs` chạy toàn bộ luồng qua API thật (tạo phụ huynh và gia sư mới, gửi xác
+minh, admin duyệt, OK hai chiều, Match, xác nhận kết nối, học thử, trang giám sát) cùng các kiểm tra bảo mật
+(CSRF, vai trò, ẩn danh, ẩn liên hệ trước khi xác nhận, idempotent, 409/400/401/403). `--smoke` chỉ kiểm tra nhanh,
+không tạo dữ liệu. Mã thoát khác 0 khi có kiểm tra thất bại. Xem phần đầu file script để biết biến môi trường, chế độ
+`--mail` (gia sư kích hoạt qua Mailpit) và giới hạn đăng ký/đăng nhập của server.

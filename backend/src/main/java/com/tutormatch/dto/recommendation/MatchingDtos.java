@@ -9,8 +9,7 @@ public final class MatchingDtos {
   private MatchingDtos() {}
   public record Action(@NotBlank @Size(max=36) String studentId,
       @NotBlank @Size(max=36) String tutorId, @NotNull Boolean interested) {}
-  public record Limits(int totalRemaining, int incomingRemaining, String resetsAt) {}
-  public record TutorPreview(String displayName, List<String> subjects, List<Integer> grades,
+  public record TutorPreview(String displayName, String photoUrl, List<String> subjects, List<Integer> grades,
       List<String> modes, String province, int hourlyRate, int experienceYears,
       List<String> availability, String verificationBadge) {}
   public record StudentPreview(int grade, List<String> subjects, String mode, String province,
@@ -18,10 +17,10 @@ public final class MatchingDtos {
   public record Card(String studentId, String tutorId, String tag, String level,
       List<String> strengths, List<String> concerns, String explanation,
       TutorPreview tutor, StudentPreview student, Instant expiresAt, boolean canLike, String status,
-      int ruleScore) {}
+      int ruleScore, Instant activityAt) {}
   public record Pair(String studentId, String tutorId, String status, Instant matchedAt) {}
-  public record Feed(List<Card> cards, Limits limits, List<Pair> matches, List<Card> savedCards, boolean paused) {}
+  public record Feed(List<Card> cards, List<Pair> matches, List<Card> savedCards, boolean paused) {}
   public record Result(String status, boolean matched, String message) {}
   public record Notification(String id, String studentId, String tutorId, String message,
-      Instant createdAt) {}
+      Instant createdAt, String eventKey) {}
 }

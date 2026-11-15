@@ -5,11 +5,11 @@ import { useHashRoute } from "../hooks/useHashRoute";
 import { WorkspaceContext } from "./workspace-store";
 const authPages = ["login", "register", "verify", "forgot", "reset"];
 const rolePages = {
-  PARENT: ["students", "discover", "interests", "lessons", "profile"],
+  PARENT: ["students", "discover", "interests", "lessons", "reviews", "profile"],
   TUTOR: ["profile", "discover", "interests", "lessons"],
-  ADMIN: ["admin"],
+  ADMIN: ["admin", "monitor"],
 };
-const loadedPages = ["lessons", "profile", "admin"];
+const loadedPages = ["profile", "admin"];
 
 export function WorkspaceProvider({ children }) {
   const [user, setUser] = useState(null),
@@ -222,6 +222,7 @@ export function WorkspaceProvider({ children }) {
           ["discover", "Khám phá gia sư"],
           ["interests", "Đã OK & Match"],
           ["lessons", "Lịch học thử"],
+          ["reviews", "Đánh giá"],
           ["profile", "Tài khoản"],
         ]
       : user?.role === "TUTOR"
@@ -231,7 +232,10 @@ export function WorkspaceProvider({ children }) {
             ["interests", "Đã OK & Match"],
             ["lessons", "Yêu cầu học thử"],
           ]
-        : [["admin", "Duyệt gia sư"]];
+        : [
+            ["admin", "Duyệt gia sư"],
+            ["monitor", "Giám sát"],
+          ];
   return (
     <WorkspaceContext.Provider
       value={{

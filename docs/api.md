@@ -52,9 +52,9 @@ LLM_URL is the full chat-completions-compatible POST endpoint, with LLM_MODEL an
 
 ## Sprint 4 two-way matching
 
-The current UI uses the new [matching API](sprint4-matching.md#api). `GET /students/{id}/matching` (owner parent) and `GET /tutor/matching` (approved visible tutor) return `{cards,limits,matches,savedCards}`. `POST /matching/actions` accepts `{studentId,tutorId,interested}` for either role and enforces ownership, eligibility, irreversible decisions, expiry and quotas. One OK is pending; two OKs atomically create a Match and two durable notices. GET `/matching/notifications` and POST `/matching/notifications/{id}/read` operate only on the current account.
+The current UI uses the new [matching API](sprint4-matching.md#api). `GET /students/{id}/matching` (owner parent) and `GET /tutor/matching` (approved visible tutor) return `{cards,matches,savedCards,paused}`. `POST /matching/actions` accepts `{studentId,tutorId,interested}` for either role and enforces ownership, eligibility, irreversible decisions, expiry. One OK is pending; two OKs atomically create a Match and two durable notices. GET `/matching/notifications` and POST `/matching/notifications/{id}/read` operate only on the current account.
 
-Student previews are explicit anonymous DTOs: no raw narrative, identity or parent contact metadata. Limits are 10 total OK/day and 3 incoming-interest OK/day per profile, reset at midnight Asia/Ho_Chi_Minh; quota exhaustion returns 429 without removing the card. Interest expires after 7 days; stale/closed actions return 409. Same-decision retries are idempotent and never refund or double-consume quota. New matching feeds are rules-only; the older `/recommendations` adapter is retained separately for compatibility/AI regression tests. Legacy `/swipes` also enforces matching state and quota. Post-Match detail and connection-confirmation APIs are Sprint 5 backlog.
+Student previews are explicit anonymous DTOs: no raw narrative, identity or parent contact metadata. OK actions have no daily or incoming-interest quota. Interest expires after 7 days; stale/closed actions return 409. Same-decision retries are idempotent and never duplicate a Match. Matching feeds use rules by default and reuse validated shared AI values when available; the older `/recommendations` adapter is retained separately for compatibility/AI regression tests. Legacy `/swipes` also enforces matching state. Post-Match detail, connection confirmation and trial APIs are implemented; see [Sprint 5-6 API](sprint5-6.md#api).
 
 ## Profile/account management
 
@@ -65,4 +65,14 @@ also verifies the current password and throttles attempts. Student responses inc
 tutor responses include `accepting_students`, and matching feeds include `paused`. Hidden profiles
 cannot receive new likes through either matching or legacy swipe APIs. Deleting an account revokes
 all login sessions and challenges; deleted profiles never reappear in discovery. Recreating a tutor
-profile preserves its ID, daily quota and closed pair decisions and requires a new review.
+profile preserves its ID and closed pair decisions and requires a new review.
+
+## Sprint 5-6
+
+The current UI uses `/matching/pairs/{studentId}/{tutorId}`, `/matching/confirm`, `/trials` and `/trials/{id}`. Both sides may request `/students/{id}/matching/ai` (parent) or `/tutor/matching/ai` (tutor). Full tutor detail requires a valid Match; recommendation/interest responses are previews. [Behavior, payloads and lifecycle](sprint5-6.md).
+
+## Admin monitor
+
+`GET /api/admin/monitor` (ADMIN only) returns an aggregate snapshot: account counts by role, new accounts and active sessions, tutors by verification state (plus hidden/paused and the oldest pending submission), student profile counts, the matching funnel (waiting, matched, awaiting confirmation, connected, closed/expired), trial schedule counts and review average, unread notifications, a seven-day activity series (Vietnam local days: new accounts, first OKs, matches, trial proposals), up to five longest-waiting tutor submissions (id, display name, submit time) and server health (database ping, uptime, Java version, whether an AI key is configured). It contains counts only: no emails, phone numbers, family names or evidence.
+
+`savedCards` ("Đã OK & Match") are sorted newest first by `activityAt`: the Match time for matched pairs, otherwise the time of the first OK. Each card carries `activityAt` (ISO-8601 instant, or null for legacy rows without a timestamp, which sort last).

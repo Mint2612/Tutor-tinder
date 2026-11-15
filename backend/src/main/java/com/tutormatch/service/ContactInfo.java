@@ -16,7 +16,8 @@ import java.util.regex.Pattern;
  * browser has a mirror of these rules (frontend/src/lib/contactInfo.js) that only warns early: this
  * class is the authority.
  */
-final class ContactInfo {
+public final class ContactInfo {
+  public static boolean contains(String text) { return find(text).isPresent(); }
   enum Kind {
     EMAIL,
     PHONE

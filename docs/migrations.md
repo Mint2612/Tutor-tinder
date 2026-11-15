@@ -38,3 +38,26 @@ to visible/accepting and no accounts are deleted by migration. Self-pausing does
 visibility/approval fields. Actual deletion is an explicit authenticated action, with current-password
 confirmation for account/tutor-profile deletion, identifying data removal and session revocation.
 Historical foreign-key targets remain as anonymous tombstones. See [management behavior](profile-management.md).
+
+## V8-V11 ? Connection, scheduling and shared AI
+
+V8 adds one-time participant confirmations and a three-day deadline for post-Match decisions.
+V9 adds event-keyed notifications and `trial_schedules`; a generated unique active-pair key
+protects pending/confirmed schedule uniqueness. V10 stores a validated shared pair score and
+an input fingerprint. V11 records the compatible learning format for each trial, backfilling it
+from the student profile. Previously applied V1?V8 scripts are unchanged.
+
+Before the local upgrade, a full SQL backup was saved to the ignored
+`.local/backups/sprint56-20261114-091202/`. Original student records, matching choices/counters
+and lesson history were retained. Profile/admin/evidence activity added during the work was
+preserved rather than restored over. Detailed local inventory is in the ignored
+`.local/sprint56-data-verification.json`.
+
+## V13 — featured tutor
+
+`V13__featured_tutor.sql` adds `tutor_profiles.featured BOOLEAN NOT NULL DEFAULT FALSE`. A featured tutor is
+listed before every other candidate in a parent's discovery feed and in the AI suggestion list (before the
+"interested in you" tag and the score). Featuring only reorders: the mandatory eligibility rules (subjects, grade,
+format, schedule, budget, same province for in-person lessons) still apply, and cards the parent has already decided
+on never return. No application endpoint sets the flag; demo environments set it with
+`scripts/seed/featured-tutor004-seed.sql`.

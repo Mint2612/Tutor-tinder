@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { describeSlot, sortSlots } from "../lib/schedule";
 
 export function Field({ label, children }) {
@@ -45,12 +45,16 @@ export function Availability({ slots = [] }) {
 }
 
 export function Avatar({ name, photo, large = false }) {
-  return photo ? (
+  const [failedPhoto, setFailedPhoto] = useState(null);
+  return photo && photo !== failedPhoto ? (
     <img
       className={`avatar ${large ? "large" : ""}`}
       src={photo}
       alt={`Ảnh ${name}`}
       referrerPolicy="no-referrer"
+      loading="lazy"
+      draggable={false}
+      onError={() => setFailedPhoto(photo)}
     />
   ) : (
     <span className={`avatar ${large ? "large" : ""}`}>
